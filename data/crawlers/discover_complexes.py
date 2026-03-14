@@ -15,11 +15,11 @@ from playwright_stealth import Stealth
 # CONSTANTS & CONFIGURATION
 # ---------------------------------------------------------
 MIN_DELAY_SEC = 1.0
-MAX_DELAY_SEC = 2.0
+MAX_DELAY_SEC = 2.5
 SEOUL_CORTAR_NO = '1100000000'
 
-# 디버그 모드: 특정 구만 수집 (예: "강남구")
-DEBUG_GU_NAME = "강남구" 
+# 디버그 모드: 특정 구만 수집 (예: "강남구"), None이면 전체 수집
+DEBUG_GU_NAME = None 
 
 OUTPUT_FILE = os.path.join(os.path.dirname(__file__), "seoul_complexes.json")
 
