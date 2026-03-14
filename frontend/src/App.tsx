@@ -1,123 +1,137 @@
-import { useState, useEffect } from 'react'
-import axios from 'axios'
-import './App.css'
-
-// API 응답 데이터 타입
-interface RealEstateData {
-    "고유번호": string
-    "거래유형": string
-    "단지명": string
-    "매물가격": number
-    "월세가격": number
-    "공급면적(m2)": number
-    "전용면적(m2)": number
-    "층수": string
-    "방향": string
-    "특징": string
-    "URL": string
-}
+import { useState, useEffect, useMemo } from 'react';
+import MapComponent from './components/MapComponent';
+import type { Complex } from './types';
+import { Search, MapPin, Building2, BarChart3, Info } from 'lucide-react';
+import './App.css';
 
 function App() {
-    const [data, setData] = useState<RealEstateData[]>([])
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
+  const [complexes, setComplexes] = useState<Complex[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedGu, setSelectedGu] = useState<string>('All');
+  const [selectedComplex, setSelectedComplex] = useState<Complex | null>(null);
 
-    // 상태: 필터링 (최대 자본금 한도)
-    const [maxPrice, setMaxPrice] = useState<number>(200000) // 기본 20억(단위: 만원) 설정
+  useEffect(() => {
+    fetch(`${import.meta.env.BASE_URL}data/complexes.json`)
+      .then(res => res.json())
+      .then(data => {
+        setComplexes(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Failed to load complexes:', err);
+        setLoading(false);
+      });
+  }, []);
 
-    useEffect(() => {
-        // 로컬 FastAPI 서버(기본 포트 8000) 호출
-        axios.get('http://127.0.0.1:8000/api/real-estate')
-            .then(response => {
-                if (response.data.status === 'success') {
-                    setData(response.data.data)
-                } else {
-                    setError(response.data.message)
-                }
-            })
-            .catch(err => {
-                console.error("API 연동 에러:", err)
-                setError('FastAPI 서버와 통신할 수 없습니다. 서버가 켜져 있는지 확인하세요.')
-            })
-            .finally(() => {
-                setLoading(false)
-            })
-    }, [])
+  const guList = useMemo(() => {
+    const gus = new Set(complexes.map(c => c.g));
+    return ['All', ...Array.from(gus).sort()];
+  }, [complexes]);
 
-    // 가격 필터링 로직: 매매가 또는 전세가가 maxPrice 이하인 데이터만
-    const filteredData = data.filter(item => {
-        // CSV 수집 시 "매물가격"이 int 형태이길 기대하나 구조에 따라 문자열일 수 있어 안전하게 파싱
-        const priceStr = String(item['매물가격'] || '0').replace(/,/g, '')
-        const price = parseInt(priceStr, 10)
-        return price <= maxPrice
-    })
+  const filteredComplexes = useMemo(() => {
+    return complexes.filter(c => {
+      const matchesSearch = c.n.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            c.d.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesGu = selectedGu === 'All' || c.g === selectedGu;
+      return matchesSearch && matchesGu;
+    });
+  }, [complexes, searchTerm, selectedGu]);
 
-    // 화면 렌더링
+  if (loading) {
     return (
-        <div className="container">
-            <header className="header">
-                <h1>🏙️ Seoul Real Estate Local Dashboard</h1>
-                <p>네이버 부동산 데이터 기반 내 자본 맞춤형 시각화 도구</p>
-            </header>
+      <div className="loading-screen">
+        <div className="loader"></div>
+        <p className="glow-text">서울시 부동산 데이터 로드 중...</p>
+      </div>
+    );
+  }
 
-            {error && <div className="error-box">{error}</div>}
+  return (
+    <div className="dashboard-layout">
+      {/* Sidebar */}
+      <aside className="sidebar glass-panel animate-fade-in">
+        <header className="sidebar-header">
+          <div className="logo">
+            <Building2 className="accent-glow" size={24} />
+            <h2 className="glow-text">Seoul Atlas</h2>
+          </div>
+          <p className="text-secondary text-xs">Premium Real Estate Insights</p>
+        </header>
 
-            {!loading && !error && (
-                <main className="main-content">
-                    <div className="sidebar">
-                        <div className="filter-section">
-                            <h3>💰 자본금 필터링 제한</h3>
-                            <p className="filter-desc">
-                                현재 자본금: <strong>{(maxPrice / 10000).toFixed(1)}억 원</strong>
-                            </p>
-                            <input
-                                type="range"
-                                min="10000"
-                                max="300000"
-                                step="5000"
-                                value={maxPrice}
-                                onChange={(e) => setMaxPrice(parseInt(e.target.value))}
-                                className="price-slider"
-                            />
-                        </div>
+        <section className="search-section">
+          <div className="search-box">
+            <Search size={18} className="text-muted" />
+            <input 
+              type="text" 
+              placeholder="단지명 또는 동 검색..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          <select 
+            className="gu-select"
+            value={selectedGu}
+            onChange={(e) => setSelectedGu(e.target.value)}
+          >
+            {guList.map(gu => <option key={gu} value={gu}>{gu}</option>)}
+          </select>
+        </section>
 
-                        <div className="stats-section">
-                            <h3>전체 수집 데이터: {data.length} 건</h3>
-                            <h3>필터링된 매물: {filteredData.length} 건</h3>
-                        </div>
-                    </div>
+        <section className="stats-section">
+          <div className="stat-card">
+            <BarChart3 size={16} className="text-accent" />
+            <div>
+              <p className="label">탐색된 단지</p>
+              <p className="value">{filteredComplexes.length.toLocaleString()}</p>
+            </div>
+          </div>
+        </section>
 
-                    <div className="data-grid-section">
-                        <h2>필터링된 매물 리스트 (샘플)</h2>
-                        <div className="card-grid">
-                            {filteredData.length === 0 ? (
-                                <p>해당 자본금으로 접근 가능한 매물이 수집된 데이터에 없습니다.</p>
-                            ) : (
-                                filteredData.slice(0, 12).map((item, idx) => (
-                                    <div key={idx} className="property-card">
-                                        <span className="badge type">{item['거래유형']}</span>
-                                        <h4>{item['단지명']}</h4>
-                                        <p className="price">가격: {item['매물가격']} 만원</p>
-                                        <p className="details">
-                                            면적: {item['전용면적(m2)']}㎡ | 층수: {item['층수']}
-                                        </p>
-                                        <p className="desc">{item['특징']}</p>
-                                        {item['URL'] && (
-                                            <a href={item['URL']} target="_blank" rel="noreferrer" className="link-btn">
-                                                매물 보러가기 ↗
-                                            </a>
-                                        )}
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    </div>
-                </main>
-            )}
+        <section className="info-panel">
+          {selectedComplex ? (
+            <div className="selected-card animate-fade-in">
+              <h3 className="text-accent">{selectedComplex.n}</h3>
+              <div className="info-row">
+                <MapPin size={14} />
+                <span>{selectedComplex.g} {selectedComplex.d}</span>
+              </div>
+              <div className="actions">
+                <button 
+                  onClick={() => window.open(`https://new.land.naver.com/complexes/${selectedComplex.id}`, '_blank')}
+                  className="primary-btn"
+                >
+                  상세 정보 탐색
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="placeholder-card">
+              <Info size={24} className="text-muted" />
+              <p>지도의 마커를 클릭하여 <br/> 상세 정보를 확인하세요.</p>
+            </div>
+          )}
+        </section>
 
-            {loading && <div className="loading">데이터 세팅 중... FastAPI 서버 응답을 대기합니다.</div>}
+        <footer className="sidebar-footer">
+          <p>© 2026 Seoul Real Estate Lab</p>
+        </footer>
+      </aside>
+
+      {/* Main Content */}
+      <main className="map-area">
+        <MapComponent 
+          complexes={filteredComplexes} 
+          onSelect={setSelectedComplex} 
+        />
+        
+        <div className="map-overlay-stats glass-panel">
+          <span className="glow-text">Seoul Core: {complexes.length.toLocaleString()} Complexes</span>
         </div>
-    )
+      </main>
+    </div>
+  );
 }
 
-export default App
+export default App;
