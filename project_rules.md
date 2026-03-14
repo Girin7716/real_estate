@@ -27,3 +27,6 @@
   - 간소화된 1인 로컬 전용 폴더링 규칙(`folder_structure.md` 참고)을 따릅니다.
 - **Data Safety (수집 방어 및 안전성)**
   - 데이터 수집 시 타겟 서버 비용을 유발하는 무차별적인 스크래핑 시도를 금지합니다. Delay, Batch Size Limit, Retry Logic 을 반드시 스크립트에 포함합니다.
+- **Anti-Bot & Automation Framework (크롤링 기술 스택)**
+  - 봇 차단이 엄격한 사이트(예: 네이버 부동산)의 데이터 수집 시, 안정성과 비동기 처리 렌더링을 위해 **Playwright**를 우선적으로 사용합니다.
+  - DOM 파싱보다는 화면 렌더링 시 발생하는 **Network Intercept(네트워크 통신 가로채기)** 기법을 사용하여, 빠르고 정확하게 JSON 데이터를 추출하는 방식을 지향합니다.

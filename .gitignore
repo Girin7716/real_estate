@@ -56,3 +56,8 @@ Thumbs.db
 *.swp
 *.swo
 data/csv_exports/*.csv
+
+# Debug / Diagnostic
+data/crawlers/debug_*.png
+data/crawlers/debug_*.html
+data/crawlers/test_*.py

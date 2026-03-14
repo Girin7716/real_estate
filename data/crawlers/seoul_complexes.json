@@ -1,0 +1,67 @@
+{
+    "last_updated": "2026-03-14 15:47:32",
+    "total_complexes": 10,
+    "description": "API 차단으로 인한 샘플 단지 리스트 (송파, 강남, 마포, 용산 등 주요 단지)",
+    "complexes": [
+        {
+            "guName": "송파구",
+            "dongName": "가락동",
+            "complexNo": "108364",
+            "complexName": "헬리오시티"
+        },
+        {
+            "guName": "마포구",
+            "dongName": "아현동",
+            "complexNo": "100918",
+            "complexName": "마포래미안푸르지오(4단지)"
+        },
+        {
+            "guName": "강남구",
+            "dongName": "도곡동",
+            "complexNo": "203",
+            "complexName": "타워팰리스1차"
+        },
+        {
+            "guName": "서초구",
+            "dongName": "반포동",
+            "complexNo": "26032",
+            "complexName": "반포자이"
+        },
+        {
+            "guName": "서초구",
+            "dongName": "반포동",
+            "complexNo": "111515",
+            "complexName": "아크로리버파크"
+        },
+        {
+            "guName": "용산구",
+            "dongName": "이촌동",
+            "complexNo": "372",
+            "complexName": "한강대우"
+        },
+        {
+            "guName": "강동구",
+            "dongName": "고덕동",
+            "complexNo": "103554",
+            "complexName": "고덕그라시움"
+        },
+        {
+            "guName": "노원구",
+            "dongName": "중계동",
+            "complexNo": "136",
+            "complexName": "건영3차"
+        },
+        {
+            "guName": "양천구",
+            "dongName": "목동",
+            "complexNo": "394",
+            "complexName": "목동신시가지7단지"
+        },
+        {
+            "guName": "성동구",
+            "dongName": "성수동1가",
+            "complexNo": "106206",
+            "complexName": "트리마제"
+        }
+    ]
+}
