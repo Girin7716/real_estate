@@ -1,8 +1,7 @@
 """
-네이버 부동산 서울 아파트 단지 목록 수집기 (Playwright Stealth + Async 기반)
-- Playwright + playwright-stealth를 사용합니다.
-- 지도 검색 및 네이게이션을 통해 자연스럽게 API 호출을 유도하고 응답을 인터셉트합니다.
-- 봇 탐지 및 429 에러를 방지하기 위해 실제 사용자 흐름을 모방합니다.
+네이버 부동산 서울 아파트 단지 목록 수집기 (Direct API v10)
+- Playwright를 사용하여 초기 Bearer Token을 가로챕니다.
+- page.evaluate를 사용하여 브라우저 컨텍스트 내에서 API를 직접 호출합니다. (쿠키 자동 포함)
 """
 import asyncio
 import json
@@ -15,8 +14,8 @@ from playwright_stealth import Stealth
 # ---------------------------------------------------------
 # CONSTANTS & CONFIGURATION
 # ---------------------------------------------------------
-MIN_DELAY_SEC = 2.0
-MAX_DELAY_SEC = 4.0
+MIN_DELAY_SEC = 1.0
+MAX_DELAY_SEC = 2.0
 SEOUL_CORTAR_NO = '1100000000'
 
 # 디버그 모드: 특정 구만 수집 (예: "강남구")
@@ -29,123 +28,125 @@ class NaverComplexDiscoverer:
     def __init__(self, page):
         self.page = page
         self.all_complexes = []
-        self.current_dong_complexes = []
+        self.auth_token = None
         self.seen_complex_nos = set()
 
-    async def handle_response(self, response):
-        """네트웍 응답을 감시하여 단지 마커 정보를 추출합니다."""
-        # 디버그용: 모든 마커 관련 요청 출력
-        if "single-markers" in response.url:
-            print(f"    [DEBUG] Marker API: {response.url} (Status: {response.status})")
+    async def capture_auth_token(self):
+        """인증에 필요한 Bearer 토큰을 가로챕니다."""
+        print("[토큰] 인증 토큰 확보 시도 중...", flush=True)
+        
+        token_found = asyncio.Event()
 
-        if "single-markers/2.0" in response.url and response.status == 200:
-            try:
-                data = await response.json()
-                if isinstance(data, list):
-                    for comp in data:
-                        marker_id = comp.get('markerId')
-                        if marker_id and marker_id not in self.seen_complex_nos:
-                            self.current_dong_complexes.append(comp)
-                            self.seen_complex_nos.add(marker_id)
-            except Exception as e:
-                print(f"    [DEBUG] JSON 파싱 에러: {e}")
+        async def request_handler(request):
+            auth = request.headers.get("authorization")
+            if auth and "Bearer" in auth:
+                self.auth_token = auth
+                token_found.set()
+
+        self.page.on("request", request_handler)
+
+        try:
+            await self.page.goto("https://new.land.naver.com/complexes")
+            await self.page.wait_for_selector("button.button_capsule", timeout=20000)
+            
+            # API 호출 유도
+            for _ in range(5):
+                if token_found.is_set(): break
+                await self.page.click("button.button_capsule")
+                await asyncio.sleep(2)
+            
+            if token_found.is_set():
+                print(f"[토큰] 가로채기 완료: {self.auth_token[:20]}...")
+                return True
+            return False
+        finally:
+            self.page.remove_listener("request", request_handler)
+
+    async def fetch_api(self, url):
+        """브라우저 내에서 fetch를 실행하여 인증 정보를 포함한 데이터를 가져옵니다."""
+        try:
+            # evaluate 내에서 fetch 실행 (쿠키 자동 포함 + 커스텀 헤더)
+            res_json = await self.page.evaluate(f"""
+                async () => {{
+                    const res = await fetch('{url}', {{
+                        headers: {{
+                            'Authorization': '{self.auth_token}',
+                            'Referer': 'https://new.land.naver.com/'
+                        }}
+                    }});
+                    return await res.json();
+                }}
+            """)
+            return res_json
+        except Exception as e:
+            # print(f"    [DEBUG] API 호출 실패: {e}")
+            return None
 
     async def get_regions(self, cortar_no):
         """지역 목록 API를 호출합니다."""
         url = f"https://new.land.naver.com/api/regions/list?cortarNo={cortar_no}"
-        try:
-            res_text = await self.page.evaluate(f"""
-                async () => {{
-                    const res = await fetch('{url}');
-                    return await res.text();
-                }}
-            """)
-            data = json.loads(res_text)
-            return data.get('regionList', [])
-        except:
-            return []
+        data = await self.fetch_api(url)
+        return data.get('regionList', []) if data else []
 
-    async def search_and_discover(self, gu_name, dong_name):
-        """검색창에 지역명을 입력하여 지도를 이동시키고 마커를 수집합니다."""
-        self.current_dong_complexes = []
-        search_query = f"{gu_name} {dong_name}"
-        
-        print(f"  - {dong_name} 검색 중...", flush=True)
+    async def fetch_complexes_for_dong(self, gu_name, dong_name, dong_no):
+        """특정 동의 단지 목록을 API로 직접 가져옵니다."""
+        url = f"https://new.land.naver.com/api/regions/complexes?cortarNo={dong_no}&realEstateType=APT:PRE&order="
         
         try:
-            # 1. 검색창 활성화 (캡슐 버튼 클릭)
-            if await self.page.is_visible("button.button_capsule"):
-                await self.page.click("button.button_capsule")
-                await self.page.wait_for_timeout(500)
-
-            # 2. 검색어 입력 (ID land_search 또는 클래스 search_input)
-            search_selector = "input#land_search"
-            if not await self.page.is_visible(search_selector):
-                search_selector = "input.search_input"
+            data = await self.fetch_api(url)
+            if not data: return 0
             
-            await self.page.wait_for_selector(search_selector, timeout=5000)
-            
-            await self.page.click(search_selector)
-            await self.page.keyboard.press("Control+A")
-            await self.page.keyboard.press("Backspace")
-            
-            await self.page.type(search_selector, search_query, delay=100)
-            await self.page.keyboard.press("Enter")
-            
-            # 3. 지도 이동 및 마커 로드 대기
-            await self.page.wait_for_timeout(4000)
-            
+            comp_list = data.get('complexList', [])
             added_count = 0
-            for comp in self.current_dong_complexes:
-                self.all_complexes.append({
-                    "guName": gu_name,
-                    "dongName": dong_name,
-                    "complexNo": comp.get('markerId'),
-                    "complexName": comp.get('markerName'),
-                    "lat": comp.get('latitude'),
-                    "lon": comp.get('longitude')
-                })
-                added_count += 1
+            for comp in comp_list:
+                c_no = str(comp.get('complexNo'))
+                if c_no not in self.seen_complex_nos:
+                    self.all_complexes.append({
+                        "guName": gu_name, "dongName": dong_name,
+                        "complexNo": c_no, "complexName": comp.get('complexName'),
+                        "lat": comp.get('latitude'), "lon": comp.get('longitude')
+                    })
+                    self.seen_complex_nos.add(c_no)
+                    added_count += 1
             
             if added_count > 0:
-                 print(f"    -> {added_count}개 신규 단지 발견 (누적: {len(self.all_complexes)})")
-            
+                 print(f"  - {dong_name}: {added_count}개 발견 (누적: {len(self.all_complexes)})")
             return added_count
-        except Exception as e:
-            print(f"    [경고] {dong_name} 검색 실패: {e}")
+        except:
             return 0
 
 
 async def main():
-    print("=== [SEOUL REAL ESTATE COMPLEX DISCOVERER (Navigation Intercept)] ===")
+    print("=== [SEOUL REAL ESTATE COMPLEX DISCOVERER (Direct API v10)] ===")
     
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         context = await browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            # 가로 폭을 늘려서 더 많은 마커가 한 번에 보이게 함
-            viewport={"width": 1600, "height": 900},
             locale="ko-KR"
         )
         page = await context.new_page()
 
         stealth = Stealth()
         await stealth.apply_stealth_async(page)
-
         discoverer = NaverComplexDiscoverer(page)
-        page.on("response", discoverer.handle_response)
 
-        # 초기 접속
-        print("[초기화] 네이버 부동산 접속...", flush=True)
-        await page.goto("https://new.land.naver.com/complexes")
-        # 캡슐 버튼이 나타날 때까지 대기
-        await page.wait_for_selector("button.button_capsule", timeout=30000)
-        await page.wait_for_timeout(2000)
+        if not await discoverer.capture_auth_token():
+            print("[에러] 인증 토큰 확보 실패.")
+            await browser.close()
+            return
 
-        # 1. 구 목록 가져오기
         gu_list = await discoverer.get_regions(SEOUL_CORTAR_NO)
         if not gu_list:
-            print("[에러] 구 목록을 가져오지 못했습니다.")
+             # 토큰 없이 재시도 (regions/list는 토큰이 필요 없을 수 있음)
+             url = f"https://new.land.naver.com/api/regions/list?cortarNo={SEOUL_CORTAR_NO}"
+             try:
+                 res_text = await page.evaluate(f"async () => fetch('{url}').then(r => r.json())")
+                 gu_list = res_text.get('regionList', [])
+             except: pass
+
+        if not gu_list:
+            print("[에러] 구 목록 수집 실패.")
             await browser.close()
             return
 
@@ -157,26 +158,24 @@ async def main():
         for gu in gu_list:
             gu_name = gu.get('cortarName')
             gu_no = gu.get('cortarNo')
-            
-            # 2. 동 목록 가져오기
             dong_list = await discoverer.get_regions(gu_no)
-            print(f">> {gu_name} ({len(dong_list)}개 동) 탐색 시작...")
+            print(f">> {gu_name} ({len(dong_list)}개 동) 수집 중...")
             
             for dong in dong_list:
                 dong_name = dong.get('cortarName')
-                # 3. 검색 및 인터셉트
-                await discoverer.search_and_discover(gu_name, dong_name)
-                # 안정적인 수집을 위한 지연
-                await page.wait_for_timeout(int(random.uniform(MIN_DELAY_SEC, MAX_DELAY_SEC) * 1000))
+                dong_no = dong.get('cortarNo')
+                await discoverer.fetch_complexes_for_dong(gu_name, dong_name, dong_no)
+                await asyncio.sleep(random.uniform(MIN_DELAY_SEC, MAX_DELAY_SEC))
 
             # 중간 저장
-            result_data = {
+            result_stats = {
                 "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "total_complexes": len(discoverer.all_complexes),
+                "target_gu": gu_name,
                 "complexes": discoverer.all_complexes
             }
             with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
-                json.dump(result_data, f, ensure_ascii=False, indent=2)
+                json.dump(result_stats, f, ensure_ascii=False, indent=2)
 
         await browser.close()
         
