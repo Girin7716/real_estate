@@ -24,3 +24,10 @@
   - [x] 5.1 Vercel을 통한 프론트엔드 배포 및 환경 변수 설정
   - [x] 5.2 `.agent/workflows/sync-realestate.md`에 DB 동기화 단계 추가
   - [x] 5.3 README.md 최종 사용 가이드 업데이트
+  - [x] 5.4 프론트엔드 레이아웃 뒤틀림 수선
+    - [x] 브라우저 인스펙션을 통한 문제 진단
+    - [x] Vanilla CSS 기반 스타일 가이드 재수립
+    - [x] `App.css` 레이아웃 속성 보강 (Flex/Grid/Spacing)
+    - [x] 사이드바 및 메인 콘텐츠 레이아웃 독립화
+    - [x] 텍스트 간격 및 타이틀 크기 조정
+    - [x] 푸터(Footer) 위치 고정

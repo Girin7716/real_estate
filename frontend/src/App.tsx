@@ -91,11 +91,11 @@ function App() {
 
   return (
     <div className="dashboard-layout antialiased">
-      <aside className="sidebar glass-panel animate-slide-in">
+      <aside className="sidebar">
         <header className="sidebar-header">
-          <div className="logo cursor-pointer hover:scale-105 transition-transform">
-            <TrendingDown className="accent-glow animate-bounce-subtle" size={28} />
-            <h2 className="glow-text tracking-tighter">Seoul Urgent</h2>
+          <div className="logo">
+            <TrendingDown className="accent-glow" size={28} />
+            <h2 className="glow-text">Seoul Urgent</h2>
           </div>
           <div className="sync-status">
             <span className="status-dot online"></span>
@@ -104,7 +104,7 @@ function App() {
         </header>
 
         <section className="search-section">
-          <div className="search-box focus-within:ring-2 ring-accent">
+          <div className="search-box">
             <Search size={18} className="text-muted" />
             <input 
               type="text" 
@@ -127,13 +127,13 @@ function App() {
                 step="5000"
                 value={maxPrice}
                 onChange={(e) => setMaxPrice(parseInt(e.target.value))}
-                className="price-slider h-2 rounded-lg appearance-none cursor-pointer"
+                className="price-slider"
               />
             </div>
             
             <div className="filter-row">
               <select 
-                className="gu-select glass-input"
+                className="gu-select"
                 value={selectedArea}
                 onChange={(e) => setSelectedArea(e.target.value)}
               >
@@ -153,7 +153,7 @@ function App() {
                     <div 
                         key={l.article_no} 
                         className={cn(
-                          "result-item ranked animate-fade-in-delayed", 
+                          "result-item ranked", 
                           selectedListing?.article_no === l.article_no && "active"
                         )}
                         style={{animationDelay: `${idx * 0.05}s`}}
@@ -161,10 +161,10 @@ function App() {
                     >
                         <div className="rank-badge-v2">{l.final_score.toFixed(1)}</div>
                         <div className="result-info">
-                            <span className="name truncate w-40">{l.complex_name}</span>
+                            <span className="name truncate">{l.complex_name}</span>
                             <div className="price-info">
                               <span className="price">{l.price_display}</span>
-                              <span className="area">{Math.floor(l.area_exclusive * 0.3025)}평</span>
+                              <span className="area">/ {Math.floor(l.area_exclusive * 0.3025)}평</span>
                             </div>
                         </div>
                         <div className="score-tag-v2">
@@ -178,22 +178,22 @@ function App() {
           </div>
         </section>
 
-        <section className="detail-panel glass-top">
+        <section className="detail-panel">
           {selectedListing ? (
-            <div className="selected-detail-card animate-scale-in">
+            <div className="selected-detail-card">
               <div className="detail-header mb-4">
-                <h3 className="text-accent text-xl font-bold">{selectedListing.complex_name}</h3>
-                <span className="badge-score-v2">Real-time Ranking Score</span>
+                <h3 className="text-xl font-bold">{selectedListing.complex_name}</h3>
+                <span className="text-xs opacity-50">Real-time Ranking Score: {selectedListing.final_score.toFixed(1)}</span>
               </div>
-              <div className="feature-box glass-panel-dark mb-4 p-3 rounded-lg">
-                <p className="feature-text italic text-sm text-gray-300">"{selectedListing.features}"</p>
+              <div className="feature-box p-3 rounded-lg border border-white/5 mb-4">
+                <p className="feature-text italic text-sm text-secondary">"{selectedListing.features}"</p>
               </div>
-              <div className="info-grid grid grid-cols-2 gap-2 text-xs text-gray-400 mb-6">
+              <div className="info-grid grid grid-cols-2 gap-2 text-xs mb-6">
                 <div className="flex items-center gap-1">
                   <Navigation size={12} className="text-accent" />
                   <span>{selectedListing.floor_info}층</span>
                 </div>
-                <div className="text-right">거래종류: {selectedListing.trade_type}</div>
+                <div className="text-right">{selectedListing.trade_type}</div>
               </div>
               <div className="actions">
                 <button 
@@ -201,7 +201,7 @@ function App() {
                   className="premium-btn shine-effect"
                 >
                   <ExternalLink size={18} />
-                  네이버 부동산에서 확인
+                  네이버 부동산 확인
                 </button>
               </div>
             </div>
@@ -214,35 +214,35 @@ function App() {
         </section>
       </aside>
 
-      <main className="ranking-details relative overflow-hidden">
+      <main className="ranking-details">
          <div className="bg-glow"></div>
-         <div className="welcome-banner glass-panel-v2 animate-fade-in z-10">
+         <div className="welcome-banner relative">
             <span className="top-label">Live Analytics Dashboard</span>
             <h1 className="hero-text">Seoul <span className="text-accent">Urgent</span> Sales</h1>
             <p className="hero-subtext">데이터 사이언스 기반의 서울 아파트 실시간 급매 탐지 및 랭킹 시스템</p>
             
-            <div className="insight-grid mt-12 w-full">
-               <div className="insight-card-v2 glass-card shine-effect">
-                  <span className="label">분석된 총 매물</span>
-                  <span className="value text-gradient">{listings.length}건</span>
+            <div className="insight-grid">
+               <div className="insight-card-v2 shine-effect">
+                  <span className="text-xs text-muted">분석된 총 매물</span>
+                  <span className="font-black text-xl">{listings.length}건</span>
                </div>
-               <div className="insight-card-v2 glass-card">
-                  <span className="label">최근 동기화 시각</span>
-                  <span className="value text-sm font-mono opacity-80">{lastUpdated || '동기화 중...'}</span>
+               <div className="insight-card-v2">
+                  <span className="text-xs text-muted">최근 동기화 시각</span>
+                  <span className="text-sm font-mono opacity-80">{lastUpdated || '동기화 중...'}</span>
                </div>
             </div>
 
-            <div className="market-trend mt-12 p-8 rounded-3xl border border-white/5 bg-white/1 overflow-hidden relative">
+            <div className="market-trend">
                <div className="flex justify-between items-end">
                   <div className="text-left">
-                     <h4 className="text-lg font-semibold text-white/90 mb-2">오늘의 최고 급매물</h4>
-                     <p className="text-3xl font-black text-accent">{listings[0]?.complex_name || '분석 대기 중'}</p>
-                     <p className="text-sm text-white/40 mt-1">{listings[0]?.price_display} | {Math.floor((listings[0]?.area_exclusive || 0) * 0.3025)}평형</p>
+                     <h4 className="text-sm font-bold text-muted mb-2 uppercase tracking-wider">오늘의 최고 급매물</h4>
+                     <p className="text-2xl font-black text-white">{listings[0]?.complex_name || '분석 대기 중'}</p>
+                     <p className="text-sm text-secondary mt-1">{listings[0]?.price_display} | {Math.floor((listings[0]?.area_exclusive || 0) * 0.3025)}평형</p>
                   </div>
                   <div className="text-right">
-                     <div className="index-pill mb-2">Urgent Index: {listings[0]?.urgent_index}%</div>
+                     <div className="price-badge mb-2">Urgent Index: {listings[0]?.urgent_index}%</div>
                      <button 
-                       className="text-xs text-accent hover:underline flex items-center gap-1 justify-end"
+                       className="text-xs text-accent hover:underline flex items-center gap-1 justify-end cursor-pointer"
                        onClick={() => listings[0] && setSelectedListing(listings[0])}
                      >
                        상세보기 <ExternalLink size={10} />
@@ -251,7 +251,7 @@ function App() {
                </div>
             </div>
          </div>
-         <footer className="absolute bottom-6 text-white/20 text-[10px] tracking-widest uppercase">
+         <footer>
             Designed for Premium Real Estate Analysis • Built with Supabase & Vercel
          </footer>
       </main>
