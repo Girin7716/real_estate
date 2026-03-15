@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Search, TrendingDown, Filter, Navigation, ExternalLink } from 'lucide-react';
+import { Search, TrendingDown, Filter, Navigation, ExternalLink, Map as MapIcon, MapPin } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { createClient } from '@supabase/supabase-js';
@@ -28,6 +28,8 @@ interface RankedListing {
   urgent_index: number;
   final_score: number;
   is_active: boolean;
+  latitude?: number;
+  longitude?: number;
   updated_at: string;
 }
 
@@ -47,6 +49,7 @@ function App() {
   const [selectedListing, setSelectedListing] = useState<RankedListing | null>(null);
   const [history, setHistory] = useState<PriceHistory[]>([]);
   const [showOnlyActive, setShowOnlyActive] = useState(true);
+  const [tradeTypeFilter, setTradeTypeFilter] = useState<string>('매매'); // 기본값 매매
   
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -103,9 +106,10 @@ function App() {
       const currentArea = Math.floor(l.area_exclusive * 0.3025).toString() + "평형";
       const matchesArea = selectedArea === 'All' || currentArea === selectedArea;
       const matchesActive = !showOnlyActive || l.is_active;
-      return matchesSearch && matchesPrice && matchesArea && matchesActive;
+      const matchesTradeType = tradeTypeFilter === 'All' || l.trade_type === tradeTypeFilter;
+      return matchesSearch && matchesPrice && matchesArea && matchesActive && matchesTradeType;
     });
-  }, [listings, searchTerm, maxPrice, selectedArea, showOnlyActive]);
+  }, [listings, searchTerm, maxPrice, selectedArea, showOnlyActive, tradeTypeFilter]);
 
   if (loading) {
     return (
@@ -158,20 +162,37 @@ function App() {
               />
             </div>
             
-            <div className="filter-row">
+            <div className="filter-row gap-2">
               <select 
-                className="gu-select"
+                className="gu-select flex-1"
                 value={selectedArea}
                 onChange={(e) => setSelectedArea(e.target.value)}
               >
                 {areaList.map(area => <option key={area} value={area}>{area}</option>)}
               </select>
               <div 
-                className={cn("count-pill glass-pill shine-effect cursor-pointer", showOnlyActive && "active")}
+                className={cn("count-pill glass-pill shine-effect cursor-pointer whitespace-nowrap", showOnlyActive && "active")}
                 onClick={() => setShowOnlyActive(!showOnlyActive)}
               >
-                  {showOnlyActive ? '활성 매물만' : '전체 기록'} | {filteredListings.length.toLocaleString()}건
+                  {showOnlyActive ? '활성' : '전체'} | {filteredListings.length}건
               </div>
+            </div>
+
+            <div className="trade-type-filter flex gap-1 mt-2">
+              {['All', '매매', '전세', '월세'].map(type => (
+                <button
+                  key={type}
+                  onClick={() => setTradeTypeFilter(type)}
+                  className={cn(
+                    "filter-chip text-[10px] px-2 py-1 rounded-full transition-all border",
+                    tradeTypeFilter === type 
+                      ? "bg-accent text-white border-accent" 
+                      : "bg-white/5 border-white/10 text-muted hover:bg-white/10"
+                  )}
+                >
+                  {type === 'All' ? '전체' : type}
+                </button>
+              ))}
             </div>
           </div>
         </section>
@@ -313,6 +334,32 @@ function App() {
                       <p className="text-[10px] mt-1">데이터 축적 중...</p>
                     </div>
                   )}
+                </div>
+              </div>
+
+              {/* 지도 보기 섹션 추가 */}
+              <div className="map-section mb-6">
+                 <h4 className="text-sm font-bold mb-3 flex items-center gap-2">
+                  <MapIcon size={14} className="text-accent" />
+                  매물 위치 확인
+                </h4>
+                <div 
+                  className="map-container relative h-32 rounded-xl overflow-hidden bg-white/5 border border-white/10 group cursor-pointer"
+                  onClick={() => {
+                    if (selectedListing.latitude && selectedListing.longitude) {
+                      window.open(`https://map.kakao.com/link/map/${selectedListing.complex_name},${selectedListing.latitude},${selectedListing.longitude}`, '_blank');
+                    } else {
+                      window.open(`https://map.kakao.com/?q=${encodeURIComponent(selectedListing.complex_name)}`, '_blank');
+                    }
+                  }}
+                >
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-accent/5 gap-2 group-hover:bg-accent/10 transition-colors">
+                    <MapPin className="text-accent animate-bounce" size={24} />
+                    <span className="text-[10px] font-bold opacity-60">클릭하여 지도 상세보기</span>
+                  </div>
+                  <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm text-[9px] px-2 py-1 rounded text-white border border-white/10">
+                    대략적인 위치 (단지 중심)
+                  </div>
                 </div>
               </div>
 

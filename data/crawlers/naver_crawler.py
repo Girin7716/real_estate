@@ -44,7 +44,9 @@ def parse_to_dataframe(raw_data_list: list) -> pd.DataFrame:
             "층수": item.get("floorInfo"),
             "방향": item.get("direction"),
             "특징": item.get("articleFeatureDesc", ""),
-            "URL": f"https://new.land.naver.com?articleNo={item.get('articleNo')}"
+            "URL": f"https://new.land.naver.com?articleNo={item.get('articleNo')}",
+            "latitude": item.get("latitude"),
+            "longitude": item.get("longitude")
         })
 
     df = pd.DataFrame(parsed_data)

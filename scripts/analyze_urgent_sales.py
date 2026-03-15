@@ -137,6 +137,8 @@ def analyze_urgent_sales():
             "price_value": new_price,
             "urgent_index": float(row['급매지수']),
             "final_score": float(row['최종점수']),
+            "latitude": float(row['latitude']) if pd.notnull(row.get('latitude')) else None,
+            "longitude": float(row['longitude']) if pd.notnull(row.get('longitude')) else None,
             "updated_at": current_time,
             "last_seen_at": current_time,
             "is_active": True

@@ -503,3 +503,23 @@ footer {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   z-index: 10;
 }
+
+/* 필터 및 지도 스타일 */
+.filter-chip {
+  flex: 1;
+  text-align: center;
+  font-weight: 600;
+}
+
+.map-container {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.map-container:hover {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 20px rgba(0, 243, 255, 0.1);
+}
+
+.map-container:active {
+  transform: scale(0.98);
+}
