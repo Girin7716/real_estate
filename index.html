@@ -9,5 +9,15 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      console.log("🚀 Dashboard Initializing...");
+      window.onload = function() {
+        if (!document.getElementById('root').hasChildNodes()) {
+          console.error("❌ App failed to render. Check for JS errors.");
+        } else {
+          console.log("✅ App rendered successfully.");
+        }
+      };
+    </script>
   </body>
 </html>
