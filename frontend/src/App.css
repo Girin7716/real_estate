@@ -400,7 +400,7 @@ footer {
   }
 
   .results-list-wrapper {
-    max-height: 400px;
+    height: 450px;
   }
 
   .ranking-details {
@@ -445,4 +445,27 @@ footer {
     transform: none;
     left: 0;
   }
+}
+
+/* 추가 스타일 */
+.history-item {
+  transition: all 0.2s ease;
+}
+.history-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateX(4px);
+}
+.count-pill.active {
+  background: var(--accent-color) !important;
+  color: #000 !important;
+  font-weight: bold;
+  border-color: var(--accent-color);
+}
+.result-item.inactive {
+  opacity: 0.4;
+  filter: grayscale(0.8);
+}
+.result-item.inactive:hover {
+  opacity: 0.7;
+  filter: grayscale(0.3);
 }

@@ -27,19 +27,26 @@ interface RankedListing {
   price_value: number;
   urgent_index: number;
   final_score: number;
+  is_active: boolean;
+  updated_at: string;
 }
 
-// Google Fonts 임포트 (index.html 또는 CSS 상단에 추가 권장)
-// @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Outfit:wght@500;700;800&display=swap');
+interface PriceHistory {
+  article_no: string;
+  price_value: number;
+  recorded_at: string;
+}
 
 function App() {
   const [listings, setListings] = useState<RankedListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [maxPrice, setMaxPrice] = useState<number>(200000); 
+  const [maxPrice, setMaxPrice] = useState<number>(250000); 
   const [selectedArea, setSelectedArea] = useState<string>('All');
   const [selectedListing, setSelectedListing] = useState<RankedListing | null>(null);
+  const [history, setHistory] = useState<PriceHistory[]>([]);
+  const [showOnlyActive, setShowOnlyActive] = useState(true);
   
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -49,6 +56,7 @@ function App() {
       const { data, error } = await supabase
         .from('urgent_sales')
         .select('*')
+        .order('is_active', { ascending: false })
         .order('final_score', { ascending: false });
 
       if (error) {
@@ -65,6 +73,24 @@ function App() {
     fetchData();
   }, []);
 
+  // 선택된 매물의 가격 이력 가져오기
+  useEffect(() => {
+    if (selectedListing) {
+      async function fetchHistory() {
+        const { data, error } = await supabase
+          .from('price_history')
+          .select('*')
+          .eq('article_no', selectedListing?.article_no)
+          .order('recorded_at', { ascending: false });
+        
+        if (!error) {
+          setHistory(data || []);
+        }
+      }
+      fetchHistory();
+    }
+  }, [selectedListing]);
+
   const areaList = useMemo(() => {
     const areas = new Set(listings.map(l => Math.floor(l.area_exclusive * 0.3025).toString() + "평형"));
     return ['All', ...Array.from(areas).sort((a,b) => parseInt(a) - parseInt(b))];
@@ -76,9 +102,10 @@ function App() {
       const matchesPrice = l.price_value <= maxPrice;
       const currentArea = Math.floor(l.area_exclusive * 0.3025).toString() + "평형";
       const matchesArea = selectedArea === 'All' || currentArea === selectedArea;
-      return matchesSearch && matchesPrice && matchesArea;
+      const matchesActive = !showOnlyActive || l.is_active;
+      return matchesSearch && matchesPrice && matchesArea && matchesActive;
     });
-  }, [listings, searchTerm, maxPrice, selectedArea]);
+  }, [listings, searchTerm, maxPrice, selectedArea, showOnlyActive]);
 
   if (loading) {
     return (
@@ -139,8 +166,11 @@ function App() {
               >
                 {areaList.map(area => <option key={area} value={area}>{area}</option>)}
               </select>
-              <div className="count-pill glass-pill shine-effect">
-                  {filteredListings.length.toLocaleString()}건 매물
+              <div 
+                className={cn("count-pill glass-pill shine-effect cursor-pointer", showOnlyActive && "active")}
+                onClick={() => setShowOnlyActive(!showOnlyActive)}
+              >
+                  {showOnlyActive ? '활성 매물만' : '전체 기록'} | {filteredListings.length.toLocaleString()}건
               </div>
             </div>
           </div>
@@ -154,7 +184,8 @@ function App() {
                         key={l.article_no} 
                         className={cn(
                           "result-item ranked", 
-                          selectedListing?.article_no === l.article_no && "active"
+                          selectedListing?.article_no === l.article_no && "active",
+                          !l.is_active && "inactive"
                         )}
                         style={{animationDelay: `${idx * 0.05}s`}}
                         onClick={() => {
@@ -201,6 +232,27 @@ function App() {
                 </div>
                 <div className="text-right">{selectedListing.trade_type}</div>
               </div>
+
+              {/* 가격 변동 히스토리 추가 */}
+              <div className="history-section mb-6">
+                <h4 className="text-sm font-bold mb-3 flex items-center gap-2">
+                  <TrendingDown size={14} className="text-accent" />
+                  가격 변동 이력
+                </h4>
+                <div className="history-list space-y-2">
+                  {history.length > 0 ? (
+                    history.map((h, i) => (
+                      <div key={i} className="history-item flex justify-between items-center p-2 rounded bg-white/5 border-l-2 border-accent">
+                        <span className="text-xs opacity-70">{new Date(h.recorded_at).toLocaleDateString()}</span>
+                        <span className="font-bold text-sm">{(h.price_value/10000).toFixed(1)}억</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs opacity-40 italic">기록된 변동 이력이 없습니다.</p>
+                  )}
+                </div>
+              </div>
+
               <div className="actions">
                 <button 
                   onClick={() => window.open(selectedListing.url, '_blank')}
