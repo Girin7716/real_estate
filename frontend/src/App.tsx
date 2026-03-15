@@ -157,7 +157,13 @@ function App() {
                           selectedListing?.article_no === l.article_no && "active"
                         )}
                         style={{animationDelay: `${idx * 0.05}s`}}
-                        onClick={() => setSelectedListing(l)}
+                        onClick={() => {
+                            setSelectedListing(l);
+                            if (window.innerWidth <= 768) {
+                              const detailPanel = document.querySelector('.detail-panel');
+                              detailPanel?.scrollIntoView({ behavior: 'smooth' });
+                            }
+                        }}
                     >
                         <div className="rank-badge-v2">{l.final_score.toFixed(1)}</div>
                         <div className="result-info">

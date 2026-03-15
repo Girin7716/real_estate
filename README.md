@@ -26,7 +26,7 @@ npm run dev
 이후 브라우저에서 `http://localhost:5173` 을 엽니다.
 
 ## 라이브 대시보드
-- **URL**: [https://frontend-seven-psi-94.vercel.app](https://frontend-seven-psi-94.vercel.app)
+- **URL**: [https://frontend-seven-psi-94.vercel.app/](https://frontend-seven-psi-94.vercel.app/)
 - **배포 방식**: GitHub Push 시 Vercel CI/CD 자동 배포
 
 ## 주요 파일 구조

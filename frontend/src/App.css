@@ -381,3 +381,68 @@ footer {
 .opacity-80 { opacity: 0.8; }
 .opacity-50 { opacity: 0.5; }
 .opacity-30 { opacity: 0.3; }
+
+/* Responsive Media Queries */
+@media (max-width: 768px) {
+  .dashboard-layout {
+    flex-direction: column;
+    height: auto;
+    overflow-y: auto;
+  }
+
+  .sidebar {
+    width: 100%;
+    min-width: 100%;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border-light);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  }
+
+  .results-list-wrapper {
+    max-height: 400px;
+  }
+
+  .ranking-details {
+    padding: 40px 20px;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .hero-text {
+    font-size: 2.2rem;
+  }
+
+  .welcome-banner {
+    padding: 30px 20px;
+    border-radius: 20px;
+  }
+
+  .insight-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .market-trend {
+    padding: 20px;
+  }
+
+  .market-trend .flex {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .market-trend .text-right {
+    text-align: left;
+    width: 100%;
+  }
+
+  footer {
+    position: relative;
+    bottom: 0;
+    margin-top: 40px;
+    padding-bottom: 20px;
+    transform: none;
+    left: 0;
+  }
+}
