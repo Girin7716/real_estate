@@ -469,3 +469,37 @@ footer {
   opacity: 0.7;
   filter: grayscale(0.3);
 }
+
+/* 데이터 시각화 스타일 */
+.analytics-metrics {
+  animation: slideUp 0.5s ease forwards;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.metric-card {
+  transition: transform 0.3s ease;
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.chart-pillar-hint {
+  z-index: 2;
+}
+
+.pillar-bar {
+  transition: height 0.3s ease, background 0.2s ease;
+}
+
+.tooltip {
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  z-index: 10;
+}

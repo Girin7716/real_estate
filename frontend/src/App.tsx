@@ -233,18 +233,102 @@ function App() {
                 <div className="text-right">{selectedListing.trade_type}</div>
               </div>
 
-              {/* 가격 변동 히스토리 추가 */}
-              <div className="history-section mb-6">
+              {/* 가격 변동 분석 지표 */}
+              {history.length > 1 && (
+                <div className="analytics-metrics grid grid-cols-2 gap-3 mb-6">
+                  <div className="metric-card bg-accent/10 border border-accent/20 p-3 rounded-lg">
+                    <span className="text-[10px] uppercase opacity-60 block mb-1">최고가 대비 하락</span>
+                    <span className="text-sm font-bold text-accent">
+                      -{((Math.max(...history.map(h => h.price_value)) - selectedListing.price_value) / 10000).toFixed(1)}억
+                    </span>
+                  </div>
+                  <div className="metric-card bg-white/5 border border-white/10 p-3 rounded-lg">
+                    <span className="text-[10px] uppercase opacity-60 block mb-1">추적 기간</span>
+                    <span className="text-sm font-bold">
+                      {Math.ceil((new Date().getTime() - new Date(history[history.length-1].recorded_at).getTime()) / (1000 * 60 * 60 * 24))}일째
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* 가격 변동 SVG 차트 */}
+              <div className="chart-section mb-6">
                 <h4 className="text-sm font-bold mb-3 flex items-center gap-2">
                   <TrendingDown size={14} className="text-accent" />
-                  가격 변동 이력
+                  가격 변동 트렌드
                 </h4>
+                <div className="chart-container bg-white/5 rounded-xl p-4 border border-white/5 h-32 relative flex items-end justify-between gap-1 overflow-hidden">
+                  {history.length > 1 ? (
+                    <>
+                      {/* 간단한 SVG 라인 차트 구현 */}
+                      <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
+                        <defs>
+                          <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="var(--accent-color)" stopOpacity="0.3" />
+                            <stop offset="100%" stopColor="var(--accent-color)" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
+                        {(() => {
+                          const prices = history.map(h => h.price_value);
+                          const min = Math.min(...prices) * 0.98;
+                          const max = Math.max(...prices) * 1.02;
+                          const range = max - min;
+                          const points = history.slice().reverse().map((h, i) => {
+                            const x = (i / (history.length - 1)) * 100;
+                            const y = 100 - ((h.price_value - min) / range) * 100;
+                            return `${x}% ${y}%`;
+                          }).join(', ');
+                          
+                          return (
+                            <>
+                              <polyline
+                                fill="none"
+                                stroke="var(--accent-color)"
+                                strokeWidth="2"
+                                points={points.replace(/%/g, '')}
+                                vectorEffect="non-scaling-stroke"
+                                style={{ transform: 'scale(1, 1)' }}
+                              />
+                              <polygon
+                                fill="url(#chartGradient)"
+                                points={`0,100 ${points.replace(/%/g, '')} 100,100`}
+                                vectorEffect="non-scaling-stroke"
+                              />
+                            </>
+                          );
+                        })()}
+                      </svg>
+                      {history.slice(0, 5).reverse().map((h, i) => (
+                        <div key={i} className="chart-pillar-hint group relative flex-1 h-full flex items-end">
+                           <div className="pillar-bar w-1 bg-accent/20 h-[50%] mx-auto rounded-t transition-all group-hover:bg-accent"></div>
+                           <div className="tooltip absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-black text-[10px] p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                             {(h.price_value/10000).toFixed(1)}억
+                           </div>
+                        </div>
+                      ))}
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center w-full h-full opacity-20">
+                      <TrendingDown size={24} />
+                      <p className="text-[10px] mt-1">데이터 축적 중...</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 가격 변동 히스토리 리스트 */}
+              <div className="history-section mb-6">
                 <div className="history-list space-y-2">
                   {history.length > 0 ? (
                     history.map((h, i) => (
                       <div key={i} className="history-item flex justify-between items-center p-2 rounded bg-white/5 border-l-2 border-accent">
                         <span className="text-xs opacity-70">{new Date(h.recorded_at).toLocaleDateString()}</span>
-                        <span className="font-bold text-sm">{(h.price_value/10000).toFixed(1)}억</span>
+                        <div className="flex items-center gap-2">
+                          {i < history.length - 1 && history[i].price_value < history[i+1].price_value && (
+                            <span className="text-[9px] text-accent font-bold px-1 bg-accent/10 rounded">하락</span>
+                          )}
+                          <span className="font-bold text-sm">{(h.price_value/10000).toFixed(1)}억</span>
+                        </div>
                       </div>
                     ))
                   ) : (
