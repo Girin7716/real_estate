@@ -1,8 +1,14 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import MapComponent from './components/MapComponent';
 import type { Complex } from './types';
-import { Search, MapPin, Building2, BarChart3, Info } from 'lucide-react';
+import { Search, MapPin, Building2, Info, Navigation, ExternalLink } from 'lucide-react';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 import './App.css';
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 function App() {
   const [complexes, setComplexes] = useState<Complex[]>([]);
@@ -10,6 +16,8 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGu, setSelectedGu] = useState<string>('All');
   const [selectedComplex, setSelectedComplex] = useState<Complex | null>(null);
+  
+  const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}data/complexes.json`)
@@ -37,6 +45,14 @@ function App() {
       return matchesSearch && matchesGu;
     });
   }, [complexes, searchTerm, selectedGu]);
+
+  const handleComplexSelect = (complex: Complex) => {
+    setSelectedComplex(complex);
+    // 선택된 항목이 리스트 상단에 보이게 스크롤 (필요시)
+    if (listRef.current) {
+        // 실제 운영 환경에서는 더 정교한 스크롤 로직이 필요할 수 있음
+    }
+  };
 
   if (loading) {
     return (
@@ -70,46 +86,72 @@ function App() {
             />
           </div>
           
-          <select 
-            className="gu-select"
-            value={selectedGu}
-            onChange={(e) => setSelectedGu(e.target.value)}
-          >
-            {guList.map(gu => <option key={gu} value={gu}>{gu}</option>)}
-          </select>
-        </section>
-
-        <section className="stats-section">
-          <div className="stat-card">
-            <BarChart3 size={16} className="text-accent" />
-            <div>
-              <p className="label">탐색된 단지</p>
-              <p className="value">{filteredComplexes.length.toLocaleString()}</p>
+          <div className="filter-row">
+            <select 
+              className="gu-select"
+              value={selectedGu}
+              onChange={(e) => setSelectedGu(e.target.value)}
+            >
+              {guList.map(gu => <option key={gu} value={gu}>{gu}</option>)}
+            </select>
+            <div className="count-pill glass-pill">
+                {filteredComplexes.length.toLocaleString()}
             </div>
           </div>
         </section>
 
-        <section className="info-panel">
+        {/* Results List View */}
+        <section className="results-list-wrapper" ref={listRef}>
+          <div className="results-list">
+            {filteredComplexes.length > 0 ? (
+                filteredComplexes.slice(0, 100).map((c) => (
+                    <div 
+                        key={c.id} 
+                        className={cn("result-item", selectedComplex?.id === c.id && "active")}
+                        onClick={() => handleComplexSelect(c)}
+                    >
+                        <div className="result-info">
+                            <span className="name">{c.n}</span>
+                            <span className="address">{c.g} {c.d}</span>
+                        </div>
+                        <Navigation size={14} className="nav-icon" />
+                    </div>
+                ))
+            ) : (
+                <div className="no-results">검색 결과가 없습니다.</div>
+            )}
+            {filteredComplexes.length > 100 && (
+                <p className="list-limit-hint">* 상위 100개 단지만 표시 중입니다. 더 정확히 검색해 주세요.</p>
+            )}
+          </div>
+        </section>
+
+        {/* Detail Action Panel */}
+        <section className="detail-panel">
           {selectedComplex ? (
-            <div className="selected-card animate-fade-in">
-              <h3 className="text-accent">{selectedComplex.n}</h3>
+            <div className="selected-detail-card animate-fade-in">
+              <div className="detail-header">
+                <h3 className="text-accent">{selectedComplex.n}</h3>
+                <span className="badge-gu">{selectedComplex.g}</span>
+              </div>
               <div className="info-row">
                 <MapPin size={14} />
-                <span>{selectedComplex.g} {selectedComplex.d}</span>
+                <span>{selectedComplex.d}</span>
               </div>
               <div className="actions">
                 <button 
                   onClick={() => window.open(`https://new.land.naver.com/complexes/${selectedComplex.id}`, '_blank')}
-                  className="primary-btn"
+                  className="primary-btn-icon"
                 >
-                  상세 정보 탐색
+                  <ExternalLink size={16} />
+                  네이버 부동산 상세 보기
                 </button>
               </div>
             </div>
           ) : (
             <div className="placeholder-card">
               <Info size={24} className="text-muted" />
-              <p>지도의 마커를 클릭하여 <br/> 상세 정보를 확인하세요.</p>
+              <p>리스트나 마커를 선택하여 <br/> 상세 정보를 확인하세요.</p>
             </div>
           )}
         </section>
@@ -123,11 +165,12 @@ function App() {
       <main className="map-area">
         <MapComponent 
           complexes={filteredComplexes} 
-          onSelect={setSelectedComplex} 
+          selectedComplex={selectedComplex}
+          onSelect={handleComplexSelect} 
         />
         
         <div className="map-overlay-stats glass-panel">
-          <span className="glow-text">Seoul Core: {complexes.length.toLocaleString()} Complexes</span>
+          <span className="glow-text">Total Core: {complexes.length.toLocaleString()}</span>
         </div>
       </main>
     </div>
