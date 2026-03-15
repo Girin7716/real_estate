@@ -1,177 +1,259 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import MapComponent from './components/MapComponent';
-import type { Complex } from './types';
-import { Search, MapPin, Building2, Info, Navigation, ExternalLink } from 'lucide-react';
+import { Search, TrendingDown, Filter, Navigation, ExternalLink } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { createClient } from '@supabase/supabase-js';
 import './App.css';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// Supabase 설정
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+interface RankedListing {
+  article_no: string;
+  complex_name: string;
+  price_display: string;
+  trade_type: string;
+  area_supply: number;
+  area_exclusive: number;
+  floor_info: string;
+  features: string;
+  url: string;
+  price_value: number;
+  urgent_index: number;
+  final_score: number;
+}
+
+// Google Fonts 임포트 (index.html 또는 CSS 상단에 추가 권장)
+// @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Outfit:wght@500;700;800&display=swap');
+
 function App() {
-  const [complexes, setComplexes] = useState<Complex[]>([]);
+  const [listings, setListings] = useState<RankedListing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedGu, setSelectedGu] = useState<string>('All');
-  const [selectedComplex, setSelectedComplex] = useState<Complex | null>(null);
+  const [maxPrice, setMaxPrice] = useState<number>(200000); 
+  const [selectedArea, setSelectedArea] = useState<string>('All');
+  const [selectedListing, setSelectedListing] = useState<RankedListing | null>(null);
   
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch(`${import.meta.env.BASE_URL}data/complexes.json`)
-      .then(res => res.json())
-      .then(data => {
-        setComplexes(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error('Failed to load complexes:', err);
-        setLoading(false);
-      });
+    async function fetchData() {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('urgent_sales')
+        .select('*')
+        .order('final_score', { ascending: false });
+
+      if (error) {
+        console.error('Failed to load listings from Supabase:', error);
+      } else {
+        setListings(data || []);
+        if (data && data.length > 0) {
+          const latest = new Date(data[0].updated_at);
+          setLastUpdated(latest.toLocaleString('ko-KR'));
+        }
+      }
+      setLoading(false);
+    }
+    fetchData();
   }, []);
 
-  const guList = useMemo(() => {
-    const gus = new Set(complexes.map(c => c.g));
-    return ['All', ...Array.from(gus).sort()];
-  }, [complexes]);
+  const areaList = useMemo(() => {
+    const areas = new Set(listings.map(l => Math.floor(l.area_exclusive * 0.3025).toString() + "평형"));
+    return ['All', ...Array.from(areas).sort((a,b) => parseInt(a) - parseInt(b))];
+  }, [listings]);
 
-  const filteredComplexes = useMemo(() => {
-    return complexes.filter(c => {
-      const matchesSearch = c.n.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                            c.d.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesGu = selectedGu === 'All' || c.g === selectedGu;
-      return matchesSearch && matchesGu;
+  const filteredListings = useMemo(() => {
+    return listings.filter(l => {
+      const matchesSearch = l.complex_name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesPrice = l.price_value <= maxPrice;
+      const currentArea = Math.floor(l.area_exclusive * 0.3025).toString() + "평형";
+      const matchesArea = selectedArea === 'All' || currentArea === selectedArea;
+      return matchesSearch && matchesPrice && matchesArea;
     });
-  }, [complexes, searchTerm, selectedGu]);
-
-  const handleComplexSelect = (complex: Complex) => {
-    setSelectedComplex(complex);
-    // 선택된 항목이 리스트 상단에 보이게 스크롤 (필요시)
-    if (listRef.current) {
-        // 실제 운영 환경에서는 더 정교한 스크롤 로직이 필요할 수 있음
-    }
-  };
+  }, [listings, searchTerm, maxPrice, selectedArea]);
 
   if (loading) {
     return (
       <div className="loading-screen">
         <div className="loader"></div>
-        <p className="glow-text">서울시 부동산 데이터 로드 중...</p>
+        <p className="glow-text animate-pulse">Supabase Cloud 데이터 동기화 중...</p>
       </div>
     );
   }
 
   return (
-    <div className="dashboard-layout">
-      {/* Sidebar */}
-      <aside className="sidebar glass-panel animate-fade-in">
+    <div className="dashboard-layout antialiased">
+      <aside className="sidebar glass-panel animate-slide-in">
         <header className="sidebar-header">
-          <div className="logo">
-            <Building2 className="accent-glow" size={24} />
-            <h2 className="glow-text">Seoul Atlas</h2>
+          <div className="logo cursor-pointer hover:scale-105 transition-transform">
+            <TrendingDown className="accent-glow animate-bounce-subtle" size={28} />
+            <h2 className="glow-text tracking-tighter">Seoul Urgent</h2>
           </div>
-          <p className="text-secondary text-xs">Premium Real Estate Insights</p>
+          <div className="sync-status">
+            <span className="status-dot online"></span>
+            <p className="text-secondary text-xs">Cloud DB Live Connection</p>
+          </div>
         </header>
 
         <section className="search-section">
-          <div className="search-box">
+          <div className="search-box focus-within:ring-2 ring-accent">
             <Search size={18} className="text-muted" />
             <input 
               type="text" 
-              placeholder="단지명 또는 동 검색..." 
+              placeholder="아파트 단지명 검색..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           
-          <div className="filter-row">
-            <select 
-              className="gu-select"
-              value={selectedGu}
-              onChange={(e) => setSelectedGu(e.target.value)}
-            >
-              {guList.map(gu => <option key={gu} value={gu}>{gu}</option>)}
-            </select>
-            <div className="count-pill glass-pill">
-                {filteredComplexes.length.toLocaleString()}
+          <div className="filters-container">
+            <div className="filter-group">
+              <div className="flex justify-between items-center mb-2">
+                <label className="flex items-center gap-1"><Filter size={12}/> 내 가용 자산</label>
+                <span className="price-badge">최대 {(maxPrice/10000).toFixed(1)}억</span>
+              </div>
+              <input 
+                type="range" 
+                min="30000" 
+                max="300000" 
+                step="5000"
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(parseInt(e.target.value))}
+                className="price-slider h-2 rounded-lg appearance-none cursor-pointer"
+              />
+            </div>
+            
+            <div className="filter-row">
+              <select 
+                className="gu-select glass-input"
+                value={selectedArea}
+                onChange={(e) => setSelectedArea(e.target.value)}
+              >
+                {areaList.map(area => <option key={area} value={area}>{area}</option>)}
+              </select>
+              <div className="count-pill glass-pill shine-effect">
+                  {filteredListings.length.toLocaleString()}건 매물
+              </div>
             </div>
           </div>
         </section>
 
-        {/* Results List View */}
-        <section className="results-list-wrapper" ref={listRef}>
+        <section className="results-list-wrapper custom-scrollbar" ref={listRef}>
           <div className="results-list">
-            {filteredComplexes.length > 0 ? (
-                filteredComplexes.slice(0, 100).map((c) => (
+            {filteredListings.length > 0 ? (
+                filteredListings.map((l, idx) => (
                     <div 
-                        key={c.id} 
-                        className={cn("result-item", selectedComplex?.id === c.id && "active")}
-                        onClick={() => handleComplexSelect(c)}
+                        key={l.article_no} 
+                        className={cn(
+                          "result-item ranked animate-fade-in-delayed", 
+                          selectedListing?.article_no === l.article_no && "active"
+                        )}
+                        style={{animationDelay: `${idx * 0.05}s`}}
+                        onClick={() => setSelectedListing(l)}
                     >
+                        <div className="rank-badge-v2">{l.final_score.toFixed(1)}</div>
                         <div className="result-info">
-                            <span className="name">{c.n}</span>
-                            <span className="address">{c.g} {c.d}</span>
+                            <span className="name truncate w-40">{l.complex_name}</span>
+                            <div className="price-info">
+                              <span className="price">{l.price_display}</span>
+                              <span className="area">{Math.floor(l.area_exclusive * 0.3025)}평</span>
+                            </div>
                         </div>
-                        <Navigation size={14} className="nav-icon" />
+                        <div className="score-tag-v2">
+                           {l.urgent_index > 0 ? `-${l.urgent_index}%` : `BEST`}
+                        </div>
                     </div>
                 ))
             ) : (
-                <div className="no-results">검색 결과가 없습니다.</div>
-            )}
-            {filteredComplexes.length > 100 && (
-                <p className="list-limit-hint">* 상위 100개 단지만 표시 중입니다. 더 정확히 검색해 주세요.</p>
+                <div className="no-results py-10 opacity-50 text-center">조건에 맞는 급매물이 없습니다.</div>
             )}
           </div>
         </section>
 
-        {/* Detail Action Panel */}
-        <section className="detail-panel">
-          {selectedComplex ? (
-            <div className="selected-detail-card animate-fade-in">
-              <div className="detail-header">
-                <h3 className="text-accent">{selectedComplex.n}</h3>
-                <span className="badge-gu">{selectedComplex.g}</span>
+        <section className="detail-panel glass-top">
+          {selectedListing ? (
+            <div className="selected-detail-card animate-scale-in">
+              <div className="detail-header mb-4">
+                <h3 className="text-accent text-xl font-bold">{selectedListing.complex_name}</h3>
+                <span className="badge-score-v2">Real-time Ranking Score</span>
               </div>
-              <div className="info-row">
-                <MapPin size={14} />
-                <span>{selectedComplex.d}</span>
+              <div className="feature-box glass-panel-dark mb-4 p-3 rounded-lg">
+                <p className="feature-text italic text-sm text-gray-300">"{selectedListing.features}"</p>
+              </div>
+              <div className="info-grid grid grid-cols-2 gap-2 text-xs text-gray-400 mb-6">
+                <div className="flex items-center gap-1">
+                  <Navigation size={12} className="text-accent" />
+                  <span>{selectedListing.floor_info}층</span>
+                </div>
+                <div className="text-right">거래종류: {selectedListing.trade_type}</div>
               </div>
               <div className="actions">
                 <button 
-                  onClick={() => window.open(`https://new.land.naver.com/complexes/${selectedComplex.id}`, '_blank')}
-                  className="primary-btn-icon"
+                  onClick={() => window.open(selectedListing.url, '_blank')}
+                  className="premium-btn shine-effect"
                 >
-                  <ExternalLink size={16} />
-                  네이버 부동산 상세 보기
+                  <ExternalLink size={18} />
+                  네이버 부동산에서 확인
                 </button>
               </div>
             </div>
           ) : (
-            <div className="placeholder-card">
-              <Info size={24} className="text-muted" />
-              <p>리스트나 마커를 선택하여 <br/> 상세 정보를 확인하세요.</p>
+            <div className="placeholder-card flex flex-col items-center justify-center opacity-30 h-full">
+              <TrendingDown size={48} className="mb-4" />
+              <p className="text-center font-medium">급매 후보를 선택하여<br/>상세 분석 리포트를 확인하세요.</p>
             </div>
           )}
         </section>
-
-        <footer className="sidebar-footer">
-          <p>© 2026 Seoul Real Estate Lab</p>
-        </footer>
       </aside>
 
-      {/* Main Content */}
-      <main className="map-area">
-        <MapComponent 
-          complexes={filteredComplexes} 
-          selectedComplex={selectedComplex}
-          onSelect={handleComplexSelect} 
-        />
-        
-        <div className="map-overlay-stats glass-panel">
-          <span className="glow-text">Total Core: {complexes.length.toLocaleString()}</span>
-        </div>
+      <main className="ranking-details relative overflow-hidden">
+         <div className="bg-glow"></div>
+         <div className="welcome-banner glass-panel-v2 animate-fade-in z-10">
+            <span className="top-label">Live Analytics Dashboard</span>
+            <h1 className="hero-text">Seoul <span className="text-accent">Urgent</span> Sales</h1>
+            <p className="hero-subtext">데이터 사이언스 기반의 서울 아파트 실시간 급매 탐지 및 랭킹 시스템</p>
+            
+            <div className="insight-grid mt-12 w-full">
+               <div className="insight-card-v2 glass-card shine-effect">
+                  <span className="label">분석된 총 매물</span>
+                  <span className="value text-gradient">{listings.length}건</span>
+               </div>
+               <div className="insight-card-v2 glass-card">
+                  <span className="label">최근 동기화 시각</span>
+                  <span className="value text-sm font-mono opacity-80">{lastUpdated || '동기화 중...'}</span>
+               </div>
+            </div>
+
+            <div className="market-trend mt-12 p-8 rounded-3xl border border-white/5 bg-white/1 overflow-hidden relative">
+               <div className="flex justify-between items-end">
+                  <div className="text-left">
+                     <h4 className="text-lg font-semibold text-white/90 mb-2">오늘의 최고 급매물</h4>
+                     <p className="text-3xl font-black text-accent">{listings[0]?.complex_name || '분석 대기 중'}</p>
+                     <p className="text-sm text-white/40 mt-1">{listings[0]?.price_display} | {Math.floor((listings[0]?.area_exclusive || 0) * 0.3025)}평형</p>
+                  </div>
+                  <div className="text-right">
+                     <div className="index-pill mb-2">Urgent Index: {listings[0]?.urgent_index}%</div>
+                     <button 
+                       className="text-xs text-accent hover:underline flex items-center gap-1 justify-end"
+                       onClick={() => listings[0] && setSelectedListing(listings[0])}
+                     >
+                       상세보기 <ExternalLink size={10} />
+                     </button>
+                  </div>
+               </div>
+            </div>
+         </div>
+         <footer className="absolute bottom-6 text-white/20 text-[10px] tracking-widest uppercase">
+            Designed for Premium Real Estate Analysis • Built with Supabase & Vercel
+         </footer>
       </main>
     </div>
   );

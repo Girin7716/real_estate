@@ -68,11 +68,11 @@ def load_target_complexes(json_path: str) -> list:
         return []
 
 
-async def run_crawler_job():
+async def run_crawler_job(json_path: str = COMPLEXES_JSON_PATH):
     """Playwright Stealth + Network Intercept 기반 크롤링 배치 작업"""
     print(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Playwright Stealth 크롤러 수집 배치 시작...", flush=True)
 
-    target_complexes = load_target_complexes(COMPLEXES_JSON_PATH)
+    target_complexes = load_target_complexes(json_path)
     if not target_complexes:
         print("[오류] 수집할 단지 목록이 비어있어 배치를 종료합니다.")
         return
@@ -180,24 +180,37 @@ async def run_crawler_job():
     print(f"-> 저장 경로: {csv_path}", flush=True)
 
 
+import sys
+import argparse
+
+# ... (기존 임포트 및 함수 생략, main 부분 수정)
+
 async def main():
+    parser = argparse.ArgumentParser(description='Naver Real Estate Crawler')
+    parser.add_argument('--once', action='store_true', help='Run once and exit')
+    args = parser.parse_args()
+
     print("=== [Naver Real Estate Playwright Stealth Crawler (Async)] ===", flush=True)
 
-    INTERVAL_SECONDS = 3600
-
-    while True:
+    if args.once:
         try:
             await run_crawler_job()
-            print(f"\n[대기] 다음 수집까지 {INTERVAL_SECONDS // 60}분 대기합니다...", flush=True)
-            await asyncio.sleep(INTERVAL_SECONDS)
-        except KeyboardInterrupt:
-            print("\n[종료] 사용자에 의해 크롤러 루프가 중지되었습니다.", flush=True)
-            break
         except Exception as e:
-            print(f"\n[크리티컬 에러] 알 수 없는 오류 발생: {e}", flush=True)
-            print("1분 후 다시 재시도합니다...", flush=True)
-            await asyncio.sleep(60)
-
+            print(f"\n[에러] 수집 중 오류 발생: {e}", flush=True)
+    else:
+        INTERVAL_SECONDS = 3600
+        while True:
+            try:
+                await run_crawler_job()
+                print(f"\n[대기] 다음 수집까지 {INTERVAL_SECONDS // 60}분 대기합니다...", flush=True)
+                await asyncio.sleep(INTERVAL_SECONDS)
+            except KeyboardInterrupt:
+                print("\n[종료] 사용자에 의해 크롤러 루프가 중지되었습니다.", flush=True)
+                break
+            except Exception as e:
+                print(f"\n[크리티컬 에러] 알 수 없는 오류 발생: {e}", flush=True)
+                print("1분 후 다시 재시도합니다...", flush=True)
+                await asyncio.sleep(60)
 
 if __name__ == "__main__":
     asyncio.run(main())
