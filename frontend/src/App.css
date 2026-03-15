@@ -252,11 +252,31 @@ body {
   white-space: nowrap;
 }
 
-/* Detail Panel (Bottom of Sidebar) */
+/* Detail Panel (Main Content Area) */
 .detail-panel {
-  padding: 24px;
-  background: rgba(13, 17, 23, 0.98);
-  border-top: 1px solid var(--border-light);
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 40px 60px;
+  background: rgba(13, 17, 23, 0.6);
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+
+/* Action Buttons Bar */
+.actions {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  padding: 24px 0 0 0 !important;
+}
+
+.action-row {
+  display: flex;
+  gap: 12px;
 }
 
 .premium-btn {
@@ -323,11 +343,19 @@ body {
   margin: 0 auto;
 }
 
-.detail-panel {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 60px 40px;
+.detail-header h3 {
+  font-size: 2rem;
+  letter-spacing: -0.5px;
+  color: white;
+  margin-bottom: 4px;
 }
+
+.detail-header span {
+  font-family: var(--font-heading);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
 
 .feature-quote {
   font-family: var(--font-heading);
@@ -386,7 +414,7 @@ body {
 
 .welcome-banner {
   width: 100%;
-  max-width: 900px;
+  max-width: 1200px;
   padding: 60px;
   background: rgba(255, 255, 255, 0.01);
   backdrop-filter: blur(40px);
@@ -654,4 +682,73 @@ footer {
 
 .map-container:active {
   transform: scale(0.98);
+}
+
+/* Detail Panel Styling */
+.detail-panel {
+  padding: 40px;
+  overflow: hidden;
+  z-index: 10;
+}
+
+.selected-detail-card {
+  width: 100%;
+  max-width: 100%;
+  padding: 0 20px;
+  margin: 0;
+  animation: fadeIn 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.info-item {
+  transition: all 0.3s ease;
+}
+
+.info-item:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.map-section {
+  transition: transform 0.3s ease;
+}
+
+.map-section:hover {
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Fix overlapping labels in map overlay */
+.map-section .absolute {
+  background: linear-gradient(to top, rgba(5, 8, 17, 0.95) 0%, rgba(5, 8, 17, 0.6) 50%, transparent 100%) !important;
+  padding: 20px !important;
+  gap: 16px !important;
+  pointer-events: none;
+}
+
+.map-section .absolute h4 {
+  white-space: nowrap;
+}
+
+.map-section .absolute button {
+  pointer-events: auto;
+  flex-shrink: 0;
+}
+
+.visual-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-section {
+  backdrop-filter: blur(10px);
+}
+
+@media (min-width: 1440px) {
+  .selected-detail-card {
+    max-width: 1400px;
+  }
 }
