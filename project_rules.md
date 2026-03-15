@@ -16,11 +16,10 @@
 
 ## 2. 개발 및 프로젝트 작동 룰셋 (Development Rules)
 
-- **Rule 5. Local-Only & CSV Architecture (1인 로컬 전용 아키텍처)**
-  - 서버 호스팅, 복잡한 인프라, 상용 RDBMS 배포 및 구축을 완전히 배제합니다.
-  - 무거운 DB 대신, 수집 데이터는 직관적으로 열람 가능한 **CSV 형식(`data/csv_exports/`)** 으로 바로 내보내고 동기화합니다.
-  - **급매물 분석 원칙**: 수집된 원본 데이터를 바탕으로 `scripts/analyze_urgent_sales.py`를 실행하여 단지/평형별 평균가 대비 하락 폭이 큰 매물을 추출합니다.
-  - 프론트엔드는 본인만 사용하는 뷰어 용도이므로 보안/성능 최적화보다 **직관적인 매물 시각화(급매물 랭킹, 지도 마커, 자본 필터)**에만 집중하여 가볍게 구성합니다.
+- **Rule 5. Cloud-Integrated & Vercel Deployment (클라우드 연동 및 Vercel 배포 원칙)**
+  - 서버 호스팅, 복잡한 인프라, 상용 RDBMS 배포 및 구축을 완전히 배제하지만, 데이터의 실시간성과 접근성을 위해 **Supabase Cloud DB**와 **Vercel**을 활용합니다.
+  - **배포 방식**: 모든 프론트엔드 배포는 **Vercel CI/CD**를 통해 자동화하며, GitHub Pages(`github.io`)는 더 이상 사용하지 않습니다.
+  - **데이터 관리**: 수집 데이터는 CSV로 로컬에 저장하되, `scripts/analyze_urgent_sales.py`를 통해 분석된 결과는 Supabase DB로 `UPSERT`하여 실시간으로 대시보드에 반영합니다.
 - **Commit Convention (커밋 컨벤션)**
   - 변경 사항 커밋 시 반드시 `type: subject` 형태를 유지합니다.  
     (예시: `feat: 네이버 부동산 가격 데이터 크롤링 구조 반영`, `docs: API 데이터 명세서 추가`)
