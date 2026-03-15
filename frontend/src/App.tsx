@@ -139,7 +139,9 @@ function App() {
             <Search size={18} className="text-muted" />
             <input 
               type="text" 
-              placeholder="아파트 단지명 검색..." 
+            <input 
+              type="text" 
+              placeholder="단지명 검색..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -321,73 +323,6 @@ function App() {
                       </svg>
                       {history.slice(0, 5).reverse().map((h, i) => (
                         <div key={i} className="chart-pillar-hint group relative flex-1 h-full flex items-end">
-                           <div className="pillar-bar w-1 bg-accent/20 h-[50%] mx-auto rounded-t transition-all group-hover:bg-accent"></div>
-                           <div className="tooltip absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-black text-[10px] p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                             {(h.price_value/10000).toFixed(1)}억
-                           </div>
-                        </div>
-                      ))}
-                    </>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center w-full h-full opacity-20">
-                      <TrendingDown size={24} />
-                      <p className="text-[10px] mt-1">데이터 축적 중...</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* 지도 보기 섹션 추가 */}
-              <div className="map-section mb-6">
-                 <h4 className="text-sm font-bold mb-3 flex items-center gap-2">
-                  <MapIcon size={14} className="text-accent" />
-                  매물 위치 확인
-                </h4>
-                <div 
-                  className="map-container relative h-32 rounded-xl overflow-hidden bg-white/5 border border-white/10 group cursor-pointer"
-                  onClick={() => {
-                    if (selectedListing.latitude && selectedListing.longitude) {
-                      window.open(`https://map.kakao.com/link/map/${selectedListing.complex_name},${selectedListing.latitude},${selectedListing.longitude}`, '_blank');
-                    } else {
-                      window.open(`https://map.kakao.com/?q=${encodeURIComponent(selectedListing.complex_name)}`, '_blank');
-                    }
-                  }}
-                >
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-accent/5 gap-2 group-hover:bg-accent/10 transition-colors">
-                    <MapPin className="text-accent animate-bounce" size={24} />
-                    <span className="text-[10px] font-bold opacity-60">클릭하여 지도 상세보기</span>
-                  </div>
-                  <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm text-[9px] px-2 py-1 rounded text-white border border-white/10">
-                    대략적인 위치 (단지 중심)
-                  </div>
-                </div>
-              </div>
-
-              {/* 가격 변동 히스토리 리스트 */}
-              <div className="history-section mb-6">
-                <div className="history-list space-y-2">
-                  {history.length > 0 ? (
-                    history.map((h, i) => (
-                      <div key={i} className="history-item flex justify-between items-center p-2 rounded bg-white/5 border-l-2 border-accent">
-                        <span className="text-xs opacity-70">{new Date(h.recorded_at).toLocaleDateString()}</span>
-                        <div className="flex items-center gap-2">
-                          {i < history.length - 1 && history[i].price_value < history[i+1].price_value && (
-                            <span className="text-[9px] text-accent font-bold px-1 bg-accent/10 rounded">하락</span>
-                          )}
-                          <span className="font-bold text-sm">{(h.price_value/10000).toFixed(1)}억</span>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-xs opacity-40 italic">기록된 변동 이력이 없습니다.</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="actions">
-                <button 
-                  onClick={() => window.open(selectedListing.url, '_blank')}
-                  className="premium-btn shine-effect"
                 >
                   <ExternalLink size={18} />
                   네이버 부동산 확인

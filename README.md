@@ -2,19 +2,34 @@
 
 네이버 부동산 데이터를 로컬에서 자동 수집하고, 통계적 분석을 통해 동일 단지/평형 평균가 대비 가장 저렴한 **'급매물'**을 찾아 우선순위를 매겨주는 1인 전용 부동산 대시보드입니다.
 
-## 핵심 특징
-1. **제로 비용**: 외부 DB나 유료 서버 없이 로컬 CSV/JSON 데이터만 사용합니다.
-2. **데이터 기반 랭킹**: 제목만 급매가 아닌, 가격 데이터 분석을 통해 도출된 진짜 급매물을 상위에 노출합니다.
-3. **가용 자산 필터링**: 사용자의 예산과 평형 선호도에 따른 즉각적인 필터링을 지원합니다.
+## ✨ Key Features (주요 기능)
 
-## 설치 및 실행 가이드
+- **Premium Analytics**: 단순히 가격만 보여주는 것이 아니라, 최고가 대비 하락액, 급매 지수, 유지 기간 등을 입체적으로 분석합니다.
+- **Price Trend Visualizer**: 자체 구현한 SVG 차트를 통해 매물의 가격 변동 이력을 시각적으로 한눈에 파악할 수 있습니다.
+- **Investor-Centric Filters**: 자본금 규모, 거래 유형(매매/전세/월세), 평형별 맞춤형 필터를 실시간으로 적용합니다.
+- **Interactive Map Support**: 상세 보기에서 카카오맵과 즉시 연동되어 매물의 위치를 별도 검색 없이 즉시 확인 가능합니다.
+- **Mobile Responsive**: 모든 기기에서 최적화된 UX를 제공하는 글래스모피즘(Glassmorphism) 기반 디자인.
 
-### 1) 통합 데이터 동기화 (수집 및 분석)
-매물 데이터를 새로 가져오고 분석하려면 다음 명령어를 사용하세요.
+## 🛠 Tech Stack (기술 스택)
 
-**방법 A: 직접 명령어 실행 (권장)**
-```powershell
-python scripts\sync_all.py
+- **Frontend**: React, TypeScript, Vite, Vanilla CSS
+- **Backend/Storage**: Supabase (PostgreSQL), Python (Crawl & Analysis)
+- **Deployment**: Vercel (CI/CD)
+- **APIs**: Naver Land API, Kakao Map API
+
+## 🚀 Getting Started
+
+```bash
+# Clone the repository
+git clone https://github.com/Girin7716/real_estate.git
+
+# Install frontend dependencies
+cd frontend
+npm install
+npm run dev
+
+# Run data pipeline (requires .env setup)
+python scripts/sync_all.py
 ```
 
 **방법 B: AI 워크플로우 사용**
