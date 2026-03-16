@@ -30,6 +30,8 @@ interface RankedListing {
   is_active: boolean;
   latitude?: number;
   longitude?: number;
+  sgg_nm?: string;
+  emd_nm?: string;
   updated_at: string;
 }
 
@@ -49,7 +51,8 @@ function App() {
   const [selectedListing, setSelectedListing] = useState<RankedListing | null>(null);
   const [history, setHistory] = useState<PriceHistory[]>([]);
   const [showOnlyActive, setShowOnlyActive] = useState(true);
-  const [tradeTypeFilter, setTradeTypeFilter] = useState<string>('매매'); // 기본값 매매
+  const [tradeTypeFilter, setTradeTypeFilter] = useState<string>('매매');
+  const [selectedDistrict, setSelectedDistrict] = useState<string>('All');
   
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -99,6 +102,29 @@ function App() {
     return ['All', ...Array.from(areas).sort((a,b) => parseInt(a) - parseInt(b))];
   }, [listings]);
 
+  const districtStats = useMemo(() => {
+    const districts: Record<string, { count: number; avgDiscount: number; maxScore: number }> = {};
+    listings.forEach(l => {
+      if (!l.is_active) return;
+      const gu = l.sgg_nm || '서울 전체';
+      if (!districts[gu]) {
+        districts[gu] = { count: 0, avgDiscount: 0, maxScore: 0 };
+      }
+      districts[gu].count += 1;
+      districts[gu].avgDiscount += l.urgent_index;
+      districts[gu].maxScore = Math.max(districts[gu].maxScore, l.final_score);
+    });
+
+    return Object.entries(districts)
+      .map(([name, stats]) => ({
+        name,
+        count: stats.count,
+        avgDiscount: stats.avgDiscount / stats.count,
+        maxScore: stats.maxScore
+      }))
+      .sort((a, b) => b.count - a.count);
+  }, [listings]);
+
   const filteredListings = useMemo(() => {
     return listings.filter(l => {
       const matchesSearch = l.complex_name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -107,9 +133,10 @@ function App() {
       const matchesArea = selectedArea === 'All' || currentArea === selectedArea;
       const matchesActive = !showOnlyActive || l.is_active;
       const matchesTradeType = tradeTypeFilter === 'All' || l.trade_type === tradeTypeFilter;
-      return matchesSearch && matchesPrice && matchesArea && matchesActive && matchesTradeType;
+      const matchesDistrict = selectedDistrict === 'All' || l.sgg_nm === selectedDistrict;
+      return matchesSearch && matchesPrice && matchesArea && matchesActive && matchesTradeType && matchesDistrict;
     });
-  }, [listings, searchTerm, maxPrice, selectedArea, showOnlyActive, tradeTypeFilter]);
+  }, [listings, searchTerm, maxPrice, selectedArea, showOnlyActive, tradeTypeFilter, selectedDistrict]);
 
   if (loading) {
     return (
@@ -247,9 +274,78 @@ function App() {
       </aside>
 
       {/* 우측 메인 영역: 상세 분석 및 트렌드 */}
-      <main className="main-content ranking-details">
-         <div className="bg-glow"></div>
-         {selectedListing ? (
+      <main className="main-content ranking-details overflow-y-auto custom-scrollbar">
+        <div className="bg-glow"></div>
+        {/* Investment Insights Radar Section */}
+        <section className="insights-container px-6 py-6 mb-2 relative z-10">
+          <div className="flex justify-between items-end mb-4">
+            <div>
+              <h1 className="text-2xl font-black mb-1 flex items-center gap-2">
+                <span className="text-accent">SEOUL</span> Investment Radar
+              </h1>
+              <p className="text-muted text-[10px] uppercase tracking-widest opacity-60">자치구별 급매물 데이터 기반 투자 기회 지수</p>
+            </div>
+            <div className="flex gap-4">
+              <div className="text-right">
+                <p className="text-[10px] text-muted uppercase tracking-wider opacity-60">Market Scale</p>
+                <p className="text-xl font-bold leading-none">{listings.length}<span className="text-xs font-normal opacity-40 ml-1">Properties</span></p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
+            <div 
+              className={cn(
+                "insight-card mini cursor-pointer transition-all flex flex-col justify-center items-center gap-1",
+                selectedDistrict === 'All' && "active ring-1 ring-accent bg-accent/10"
+              )}
+              onClick={() => setSelectedDistrict('All')}
+            >
+              <div className="text-[10px] text-muted uppercase">Region</div>
+              <div className="text-sm font-bold">서울 전체</div>
+            </div>
+            {districtStats.map((stat, i) => (
+              <div 
+                key={stat.name}
+                className={cn(
+                  "insight-card cursor-pointer group hover:translate-y-[-4px] transition-all relative overflow-hidden",
+                  selectedDistrict === stat.name && "active ring-2 ring-accent shadow-[0_0_20px_rgba(255,107,0,0.2)] bg-white/5"
+                )}
+                style={{animationDelay: `${i * 0.1}s`}}
+                onClick={() => setSelectedDistrict(selectedDistrict === stat.name ? 'All' : stat.name)}
+              >
+                <div className="flex justify-between items-start mb-3 relative z-10">
+                  <span className="text-sm font-black text-white group-hover:text-accent transition-colors">{stat.name}</span>
+                  <span className="count-badge bg-white/10 px-1.5 py-0.5 rounded text-[10px] font-bold">{stat.count}</span>
+                </div>
+                <div className="space-y-2 relative z-10">
+                  <div className="flex justify-between text-[10px] items-center">
+                    <span className="opacity-40 uppercase tracking-tighter">Avg Discount</span>
+                    <span className="text-accent font-black">{stat.avgDiscount.toFixed(1)}%</span>
+                  </div>
+                  <div className="progress-bar-bg h-1 rounded-full overflow-hidden bg-white/5">
+                    <div 
+                      className="progress-bar-fill h-full bg-accent shadow-[0_0_8px_rgba(255,107,0,0.5)]" 
+                      style={{ width: `${Math.min(stat.avgDiscount * 5, 100)}%` }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between text-[9px] items-center opacity-40">
+                    <span className="uppercase">Opportunity</span>
+                    <span className="font-bold">{stat.maxScore.toFixed(0)}pt</span>
+                  </div>
+                </div>
+                {/* Background Decoration */}
+                <div className="absolute -right-2 -bottom-2 opacity-[0.03] pointer-events-none">
+                   <TrendingDown size={48} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <div className="divider mx-6 opacity-10 border-t border-white mb-6"></div>
+
+        {selectedListing ? (
             <section className="detail-panel w-full h-full flex flex-col">
               <div className="selected-detail-card flex-1 flex flex-col min-h-0">
                 <div className="detail-header mb-4 shrink-0">

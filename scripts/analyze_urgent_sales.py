@@ -103,11 +103,37 @@ def analyze_urgent_sales():
     current_time = datetime.now().isoformat()
     current_articles = set()
 
+    # 단지 메타데이터 로드 (구/동 정보 매핑용)
+    complex_meta = {}
+    complexes_path = os.path.join(BASE_DIR, "data", "crawlers", "seoul_complexes.json")
+    if os.path.exists(complexes_path):
+        try:
+            with open(complexes_path, 'r', encoding='utf-8') as f:
+                c_data = json.load(f)
+                # complexNo를 키로 하는 맵 생성
+                complex_meta = {str(c['complexNo']): c for c in c_data.get('complexes', [])}
+        except Exception as e:
+            print(f"[경고] 단지 메타데이터 로드 실패: {e}")
+
     for _, row in ranked_df.iterrows():
         art_no = str(row['고유번호'])
         new_price = int(row['매매가_수치'])
         current_articles.add(art_no)
         
+        # 단지 정보에서 구/동 추출 (크롤러가 저장한 원본 데이터 또는 메타데이터 활용)
+        # naver_crawler.py가 articleName(단지명)은 주지만 complexNo는 직접 안 줄 수 있으니 
+        # 단지명으로 매핑하거나, 크롤러 정보를 더 활용해야 함.
+        # 여기서는 단지명 기반 매핑 (동명이인 단지 주의)
+        sgg_nm = "서울"
+        emd_nm = ""
+        
+        # 단지명으로 메타데이터 찾기
+        for meta in complex_meta.values():
+            if meta['complexName'] == row['단지명']:
+                sgg_nm = meta['guName']
+                emd_nm = meta['dongName']
+                break
+
         # 가격 변동 감지
         if art_no in existing_map and existing_map[art_no] != new_price:
             print(f"  [변동] {row['단지명']} ({art_no}): {existing_map[art_no]} -> {new_price}")
@@ -127,6 +153,8 @@ def analyze_urgent_sales():
         upload_data.append({
             "article_no": art_no,
             "complex_name": row['단지명'],
+            "sgg_nm": sgg_nm,
+            "emd_nm": emd_nm,
             "price_display": row['매물가격'],
             "trade_type": row['거래유형'],
             "area_supply": float(row['공급면적(m2)']),
