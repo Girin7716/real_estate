@@ -372,7 +372,9 @@ function App() {
                       height="100%" 
                       frameBorder="0" 
                       style={{ border: 0, filter: 'invert(90%) hue-rotate(180deg) brightness(85%) contrast(85%) saturate(0%) grayscale(100%) sepia(10%)' }}
-                      src={`https://maps.google.com/maps?q=${encodeURIComponent('서울 ' + selectedListing.complex_name)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                      src={selectedListing.latitude && selectedListing.longitude 
+                        ? `https://maps.google.com/maps?q=${selectedListing.latitude},${selectedListing.longitude}&t=&z=16&ie=UTF8&iwloc=A&output=embed`
+                        : `https://maps.google.com/maps?q=${encodeURIComponent('서울 ' + selectedListing.complex_name)}&t=&z=16&ie=UTF8&iwloc=A&output=embed`}
                       allowFullScreen
                     ></iframe>
                     <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-[#050811] via-[#050811]/80 to-transparent pointer-events-none flex flex-row justify-between items-center gap-4">
