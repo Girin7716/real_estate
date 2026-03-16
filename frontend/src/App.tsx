@@ -257,140 +257,144 @@ function App() {
                   <span className="text-sm opacity-60">Real-time Ranking Score: {selectedListing.final_score.toFixed(1)}</span>
                 </div>
                 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-2 mb-4">
-                  {/* 왼쪽: 기본 정보 & 요약 */}
-                  <div className="info-column flex flex-col gap-4">
-                    <div className="feature-box p-4 rounded-xl bg-white/5 border border-white/10 shrink-0">
-                      <p className="feature-text italic text-base text-secondary leading-relaxed">"{selectedListing.features}"</p>
-                    </div>
-                    
-                    <div className="info-grid grid grid-cols-2 gap-3 text-sm shrink-0">
-                      <div className="info-item bg-black/20 p-3 rounded-lg border border-white/5 flex items-center gap-2">
-                        <Navigation size={16} className="text-accent" />
-                        <span className="font-medium">{selectedListing.floor_info}층</span>
+                <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-2 mb-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    {/* 상단 왼쪽: 기본 정보 & 요약 */}
+                    <div className="info-column flex flex-col gap-4">
+                      <div className="feature-box p-4 rounded-xl bg-white/5 border border-white/10 shrink-0">
+                        <p className="feature-text italic text-base text-secondary leading-relaxed">"{selectedListing.features}"</p>
                       </div>
-                      <div className="info-item bg-black/20 p-3 rounded-lg border border-white/5 flex items-center justify-center font-bold text-accent">
-                        {selectedListing.trade_type}
-                      </div>
-                      <div className="info-item bg-black/20 p-3 rounded-lg border border-white/5 flex items-center gap-2">
-                        <span className="opacity-60 text-xs">전용면적</span>
-                        <span className="font-medium">{selectedListing.area_exclusive}㎡ ({Math.floor((selectedListing.area_exclusive || 0) * 0.3025)}평)</span>
-                      </div>
-                      <div className="info-item bg-black/20 p-3 rounded-lg border border-white/5 flex items-center justify-center text-xl font-black tracking-tight">
-                        {selectedListing.price_display}
-                      </div>
-                    </div>
-                    
-                    {history.length > 1 && (
-                      <div className="analytics-metrics grid grid-cols-2 gap-3 mt-2 shrink-0">
-                        <div className="metric-card bg-accent/10 border border-accent/20 p-4 rounded-xl">
-                          <span className="text-[11px] uppercase opacity-70 block mb-2 tracking-wider">최고가 대비 하락</span>
-                          <span className="text-2xl font-black text-accent">
-                            -{((Math.max(...history.map(h => h.price_value)) - selectedListing.price_value) / 10000).toFixed(1)}억
-                          </span>
+                      
+                      <div className="info-grid grid grid-cols-2 gap-3 text-sm shrink-0">
+                        <div className="info-item bg-black/20 p-3 rounded-lg border border-white/5 flex items-center gap-2">
+                          <Navigation size={16} className="text-accent" />
+                          <span className="font-medium">{selectedListing.floor_info}층</span>
                         </div>
-                        <div className="metric-card bg-white/5 border border-white/10 p-4 rounded-xl">
-                          <span className="text-[11px] uppercase opacity-70 block mb-2 tracking-wider">추적 기간</span>
-                          <span className="text-2xl font-black text-white">
-                            {Math.ceil((new Date().getTime() - new Date(history[history.length-1].recorded_at).getTime()) / (1000 * 60 * 60 * 24))}일
-                          </span>
+                        <div className="info-item bg-black/20 p-3 rounded-lg border border-white/5 flex items-center justify-center font-bold text-accent">
+                          {selectedListing.trade_type}
+                        </div>
+                        <div className="info-item bg-black/20 p-3 rounded-lg border border-white/5 flex items-center gap-2">
+                          <span className="opacity-60 text-xs">전용면적</span>
+                          <span className="font-medium">{selectedListing.area_exclusive}㎡ ({Math.floor((selectedListing.area_exclusive || 0) * 0.3025)}평)</span>
+                        </div>
+                        <div className="info-item bg-black/20 p-3 rounded-lg border border-white/5 flex items-center justify-center text-xl font-black tracking-tight">
+                          {selectedListing.price_display}
                         </div>
                       </div>
-                    )}
+                      
+                      {history.length > 1 && (
+                        <div className="analytics-metrics grid grid-cols-2 gap-3 mt-2 shrink-0">
+                          <div className="metric-card bg-accent/10 border border-accent/20 p-4 rounded-xl">
+                            <span className="text-[11px] uppercase opacity-70 block mb-2 tracking-wider">최고가 대비 하락</span>
+                            <span className="text-2xl font-black text-accent">
+                              -{((Math.max(...history.map(h => h.price_value)) - selectedListing.price_value) / 10000).toFixed(1)}억
+                            </span>
+                          </div>
+                          <div className="metric-card bg-white/5 border border-white/10 p-4 rounded-xl">
+                            <span className="text-[11px] uppercase opacity-70 block mb-2 tracking-wider">추적 기간</span>
+                            <span className="text-2xl font-black text-white">
+                              {Math.ceil((new Date().getTime() - new Date(history[history.length-1].recorded_at).getTime()) / (1000 * 60 * 60 * 24))}일
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 상단 오른쪽: 차트 */}
+                    <div className="visual-column flex flex-col h-full">
+                      <div className="chart-section bg-white/5 rounded-xl p-6 border border-white/10 flex-col flex h-full min-h-[250px] shrink-0">
+                        <h4 className="text-sm font-bold mb-4 flex items-center gap-2 text-white/90 shrink-0">
+                          <TrendingDown size={16} className="text-accent" />
+                          가격 변동 트렌드 (최근 12개월)
+                        </h4>
+                        <div className="chart-container relative flex-1 min-h-0 flex items-end justify-between gap-2 overflow-hidden">
+                          {history.length > 1 ? (
+                            <>
+                              <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
+                                <defs>
+                                  <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="var(--accent-color)" stopOpacity="0.4" />
+                                    <stop offset="100%" stopColor="var(--accent-color)" stopOpacity="0" />
+                                  </linearGradient>
+                                </defs>
+                                {(() => {
+                                   const prices = history.map(h => h.price_value);
+                                   const min = Math.min(...prices) * 0.98;
+                                   const max = Math.max(...prices) * 1.02;
+                                   const range = (max - min) || 1;
+                                   const points = history.slice().reverse().map((h, i) => {
+                                     const x = (i / (Math.max(1, history.length - 1))) * 100;
+                                     const y = 100 - ((h.price_value - min) / range) * 100;
+                                     return `${x}% ${y}%`;
+                                   }).join(', ');
+                                   
+                                   return (
+                                     <>
+                                       <polyline
+                                         fill="none"
+                                         stroke="var(--accent-color)"
+                                         strokeWidth="3"
+                                         points={points.replace(/%/g, '')}
+                                         vectorEffect="non-scaling-stroke"
+                                       />
+                                       <polygon
+                                         fill="url(#chartGradient)"
+                                         points={`0,100 ${points.replace(/%/g, '')} 100,100`}
+                                         vectorEffect="non-scaling-stroke"
+                                       />
+                                     </>
+                                   );
+                                })()}
+                              </svg>
+                              {history.slice(0, 5).reverse().map((h, i) => (
+                                <div key={i} className="chart-pillar-hint group relative flex-1 h-full flex items-end justify-center z-10 transition-all">
+                                  <div className="opacity-0 group-hover:opacity-100 absolute bottom-full mb-2 bg-black/90 text-xs py-1 px-2 rounded whitespace-nowrap border border-white/20 transition-opacity pointer-events-none backdrop-blur-md">
+                                    {(h.price_value / 10000).toFixed(1)}억
+                                  </div>
+                                  <div className="w-full h-full hover:bg-white/5 transition-colors cursor-crosshair"></div>
+                                </div>
+                              ))}
+                            </>
+                          ) : (
+                            <div className="flex w-full h-full items-center justify-center text-sm opacity-50">
+                              데이터 축적 중...
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* 오른쪽: 차트 & 지도 연동 */}
-                  <div className="visual-column flex flex-col gap-4 h-full">
-                    <div className="chart-section bg-white/5 rounded-xl p-4 border border-white/10 flex-col flex h-[200px] shrink-0">
-                      <h4 className="text-sm font-bold mb-2 flex items-center gap-2 text-white/90 shrink-0">
-                        <TrendingDown size={16} className="text-accent" />
-                        가격 변동 트렌드
-                      </h4>
-                      <div className="chart-container relative flex-1 min-h-0 flex items-end justify-between gap-2 overflow-hidden">
-                        {history.length > 1 ? (
-                          <>
-                            <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
-                              <defs>
-                                <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="0%" stopColor="var(--accent-color)" stopOpacity="0.4" />
-                                  <stop offset="100%" stopColor="var(--accent-color)" stopOpacity="0" />
-                                </linearGradient>
-                              </defs>
-                              {(() => {
-                                 const prices = history.map(h => h.price_value);
-                                 const min = Math.min(...prices) * 0.98;
-                                 const max = Math.max(...prices) * 1.02;
-                                 const range = (max - min) || 1;
-                                 const points = history.slice().reverse().map((h, i) => {
-                                   const x = (i / (Math.max(1, history.length - 1))) * 100;
-                                   const y = 100 - ((h.price_value - min) / range) * 100;
-                                   return `${x}% ${y}%`;
-                                 }).join(', ');
-                                 
-                                 return (
-                                   <>
-                                     <polyline
-                                       fill="none"
-                                       stroke="var(--accent-color)"
-                                       strokeWidth="3"
-                                       points={points.replace(/%/g, '')}
-                                       vectorEffect="non-scaling-stroke"
-                                     />
-                                     <polygon
-                                       fill="url(#chartGradient)"
-                                       points={`0,100 ${points.replace(/%/g, '')} 100,100`}
-                                       vectorEffect="non-scaling-stroke"
-                                     />
-                                   </>
-                                 );
-                              })()}
-                            </svg>
-                            {history.slice(0, 5).reverse().map((h, i) => (
-                              <div key={i} className="chart-pillar-hint group relative flex-1 h-full flex items-end justify-center z-10 transition-all">
-                                <div className="opacity-0 group-hover:opacity-100 absolute bottom-full mb-2 bg-black/90 text-xs py-1 px-2 rounded whitespace-nowrap border border-white/20 transition-opacity pointer-events-none backdrop-blur-md">
-                                  {(h.price_value / 10000).toFixed(1)}억
-                                </div>
-                                <div className="w-full h-full hover:bg-white/5 transition-colors cursor-crosshair"></div>
-                              </div>
-                            ))}
-                          </>
-                        ) : (
-                          <div className="flex w-full h-full items-center justify-center text-sm opacity-50">
-                            데이터 축적 중...
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="map-section bg-[#1a1a1a] rounded-xl border border-white/5 flex-1 min-h-[200px] relative overflow-hidden group shadow-inner">
-                      <iframe 
-                        width="100%" 
-                        height="100%" 
-                        frameBorder="0" 
-                        style={{ border: 0, filter: 'invert(90%) hue-rotate(180deg) brightness(85%) contrast(85%) saturate(0%) grayscale(100%) sepia(10%)' }}
-                        src={`https://maps.google.com/maps?q=${encodeURIComponent('서울 ' + selectedListing.complex_name)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
-                        allowFullScreen
-                      ></iframe>
-                      <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-[#050811] via-[#050811]/80 to-transparent pointer-events-none flex flex-row justify-between items-center gap-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center">
-                            <MapPin size={18} className="text-accent" />
-                          </div>
-                          <div>
-                            <h4 className="text-sm font-bold text-white leading-none">단지 위치</h4>
-                            <p className="text-[10px] text-white/40 mt-1">Girin Urgent Detect AI</p>
-                          </div>
+                  {/* 하단 전체 너비: 지도 */}
+                  <div className="map-section bg-[#1a1a1a] rounded-xl border border-white/5 min-h-[450px] relative overflow-hidden group shadow-inner mb-2">
+                    <iframe 
+                      width="100%" 
+                      height="100%" 
+                      frameBorder="0" 
+                      style={{ border: 0, filter: 'invert(90%) hue-rotate(180deg) brightness(85%) contrast(85%) saturate(0%) grayscale(100%) sepia(10%)' }}
+                      src={`https://maps.google.com/maps?q=${encodeURIComponent('서울 ' + selectedListing.complex_name)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                      allowFullScreen
+                    ></iframe>
+                    <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-[#050811] via-[#050811]/80 to-transparent pointer-events-none flex flex-row justify-between items-center gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center">
+                          <MapPin size={18} className="text-accent" />
                         </div>
-                        <button 
-                          className="pointer-events-auto text-xs font-bold bg-accent text-black px-4 py-2 rounded-lg hover:bg-accent/80 transition-all flex items-center gap-2 shadow-lg shadow-accent/20"
-                          onClick={() => window.open(`https://map.kakao.com/?q=${encodeURIComponent(selectedListing.complex_name)}`, '_blank')}
-                        >
-                          카카오맵 열기
-                        </button>
+                        <div>
+                          <h4 className="text-sm font-bold text-white leading-none">단지 위치</h4>
+                          <p className="text-[10px] text-white/40 mt-1">Girin Urgent Detect AI</p>
+                        </div>
                       </div>
+                      <button 
+                        className="pointer-events-auto text-xs font-bold bg-accent text-black px-4 py-2 rounded-lg hover:bg-accent/80 transition-all flex items-center gap-2 shadow-lg shadow-accent/20"
+                        onClick={() => window.open(`https://map.kakao.com/?q=${encodeURIComponent(selectedListing.complex_name)}`, '_blank')}
+                      >
+                        카카오맵 열기
+                      </button>
                     </div>
                   </div>
                 </div>
+
 
                 <div className="actions">
                   <button 
