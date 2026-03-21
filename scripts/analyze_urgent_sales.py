@@ -115,6 +115,9 @@ def analyze_urgent_sales():
         except Exception as e:
             print(f"[경고] 단지 메타데이터 로드 실패: {e}")
 
+    # 단지명 기반 메타데이터 맵 생성 (O(1) 조회를 위함)
+    name_to_meta = {m['complexName']: m for m in complex_meta.values()}
+
     for _, row in ranked_df.iterrows():
         art_no = str(row['고유번호'])
         new_price = int(row['매매가_수치'])
@@ -127,12 +130,11 @@ def analyze_urgent_sales():
         sgg_nm = "서울"
         emd_nm = ""
         
-        # 단지명으로 메타데이터 찾기
-        for meta in complex_meta.values():
-            if meta['complexName'] == row['단지명']:
-                sgg_nm = meta['guName']
-                emd_nm = meta['dongName']
-                break
+        # 단지명으로 메타데이터 찾기 (O(1) lookup)
+        meta = name_to_meta.get(row['단지명'])
+        if meta:
+            sgg_nm = meta['guName']
+            emd_nm = meta['dongName']
 
         # 가격 변동 감지
         if art_no in existing_map and existing_map[art_no] != new_price:
@@ -172,28 +174,21 @@ def analyze_urgent_sales():
             "is_active": True
         })
     
-    # C. 상세 페이지/차트용 히스토리 업로드
-    if history_data:
-        history_url = f"{SUPABASE_URL}/rest/v1/price_history"
-        try:
-            h_resp = requests.post(history_url, headers=headers, data=json.dumps(history_data))
-            h_resp.raise_for_status()
-            print(f">> {len(history_data)}건의 가격 변동 이력이 기록되었습니다.")
-        except Exception as e:
-            print(f"[경고] 가격 이력 업로드 실패: {e}")
-
-    # D. 사라진 매물 비활성화 (Batch Update)
-    disappeared_articles = [art for art in existing_map if art not in current_articles]
-    if disappeared_articles:
-        print(f">> {len(disappeared_articles)}건의 매물이 사라졌습니다. 비활성 처리 중...")
-        # (주의: REST API 벌크 업데이트는 복잡하므로 간단히 개별/루프 또는 특정 쿼리 가능)
-        # 여기서는 간단히 is_active=false 업데이트 (In 쿼리 사용)
-        patch_url = f"{SUPABASE_URL}/rest/v1/urgent_sales?article_no=in.({','.join(disappeared_articles[:100])})" # 최대 100건 예시
-        patch_headers = headers.copy()
-        patch_headers["Prefer"] = "return=minimal"
-        try:
-            requests.patch(patch_url, headers=patch_headers, data=json.dumps({"is_active": False}))
-        except Exception: pass
+    # Helper: Batch Sync
+    def sync_batches(url, headers, data, batch_size=500):
+        total = len(data)
+        if total == 0: return
+        for i in range(0, total, batch_size):
+            batch = data[i:i + batch_size]
+            try:
+                resp = requests.post(url, headers=headers, data=json.dumps(batch))
+                resp.raise_for_status()
+                print(f"  -> [{min(i + batch_size, total)} / {total}] 항목 동기화 완료...")
+            except Exception as e:
+                error_msg = str(e)
+                if hasattr(resp, 'text'):
+                    error_msg += f" | Detail: {resp.text}"
+                print(f"  [오류] 배치 {i//batch_size + 1} 실패: {error_msg}")
 
     # 6. 최종 메인 데이터 업로드 (UPSERT)
     api_url = f"{SUPABASE_URL}/rest/v1/urgent_sales?on_conflict=article_no"
@@ -201,13 +196,47 @@ def analyze_urgent_sales():
     main_headers["Prefer"] = "resolution=merge-duplicates" # Upsert 모드
     main_headers["Content-Type"] = "application/json"
     
+    import math
+    def clean_float(val):
+        if val is None: return None
+        try:
+            f_val = float(val)
+            if not math.isfinite(f_val): return None
+            return f_val
+        except: return None
+
+    # 데이터 정제 (NaN/Inf 처리)
+    for item in upload_data:
+        for k, v in item.items():
+            if isinstance(v, float):
+                item[k] = clean_float(v)
+
     print(f">> Supabase API로 {len(upload_data)}건의 메인 데이터를 동기화 중...")
-    try:
-        response = requests.post(api_url, headers=main_headers, data=json.dumps(upload_data))
-        response.raise_for_status()
-        print(f"[{datetime.now()}] Supabase 동기화 완료! (Status: {response.status_code})")
-    except Exception as e:
-        print(f"[오류] Supabase 업로드 실패: {e}")
+    sync_batches(api_url, main_headers, upload_data, batch_size=100) # 배치 사이즈 축소
+
+    # C. 상세 페이지/차트용 히스토리 업로드
+    if history_data:
+        print(f">> {len(history_data)}건의 가격 변동 이력을 기록 중...")
+        for item in history_data:
+            item["price_value"] = clean_float(item["price_value"]) # 히스토리 데이터도 정제
+            
+        history_url = f"{SUPABASE_URL}/rest/v1/price_history"
+        sync_batches(history_url, headers, history_data, batch_size=100)
+
+    # D. 사라진 매물 비활성화 (Batch Update)
+    disappeared_articles = [art for art in existing_map if art not in current_articles]
+    if disappeared_articles:
+        print(f">> {len(disappeared_articles)}건의 매물이 사라졌습니다. 비활성 처리 중...")
+        for i in range(0, len(disappeared_articles), 100):
+            batch_slice = disappeared_articles[i:i+100]
+            patch_url = f"{SUPABASE_URL}/rest/v1/urgent_sales?article_no=in.({','.join(batch_slice)})"
+            patch_headers = headers.copy()
+            patch_headers["Prefer"] = "return=minimal"
+            try:
+                requests.patch(patch_url, headers=patch_headers, data=json.dumps({"is_active": False}))
+            except Exception: pass
+
+    print(f"[{datetime.now()}] Supabase 최종 동기화 프로세스 완료!")
 
 if __name__ == "__main__":
     analyze_urgent_sales()
