@@ -49,7 +49,7 @@ npm run dev
 
 ## 라이브 대시보드
 - **URL**: [https://frontend-seven-psi-94.vercel.app/](https://frontend-seven-psi-94.vercel.app/)
-- **배포 방식**: GitHub Push 시 Vercel CI/CD 자동 배포
+- **배포 방식**: GitHub Push 시 Vercel CI/CD 자동 배포 (※ GitHub Pages는 더 이상 사용하지 않습니다.)
 
 ## 주요 파일 구조
 - `data/crawlers/`: 네이버 부동산 수집 스크립트
